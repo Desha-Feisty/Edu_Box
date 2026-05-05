@@ -14,6 +14,15 @@ const readLimiter = rateLimit({
     legacyHeaders: false,
 });
 
+// Stricter limiter for write operations (quiz submission, answers)
+const writeLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 30, // 30 write requests per minute
+    message: { error: "Too many write requests, please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 router.post(
     "/:id/quizzes",
     authMiddleware,
@@ -64,6 +73,12 @@ router.get(
     authMiddleware,
     requireRole("teacher"),
     attemptController.listQuizGrades,
+);
+router.get(
+    "/:id/grades/export",
+    authMiddleware,
+    requireRole("teacher"),
+    attemptController.exportQuizGradesCsv,
 );
 
 export default router;

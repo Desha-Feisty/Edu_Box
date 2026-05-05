@@ -2,7 +2,10 @@ import Joi from "joi";
 import type { Request, Response } from "express";
 import Course from "../models/course.js";
 import Enrollment from "../models/enrollment.js";
-import { startSession } from "mongoose";
+import Quiz from "../models/quiz.js";
+import Attempt from "../models/attempt.js";
+import Question from "../models/question.js";
+import { startSession, Types } from "mongoose";
 import { type AuthRequest } from "../types/authRequest.js";
 
 function createJoinCode() {
@@ -42,21 +45,31 @@ const listMyCourses = async (req: AuthRequest, res: Response) => {
         }
 
         if (req.user.role === "teacher") {
-            // Fetch courses normally
-            const courses = await Course.find({ teacher: req.user._id }).sort("-createdAt").lean();
+            const courses = await Course.aggregate([
+                { $match: { teacher: new Types.ObjectId(req.user._id) } },
+                { $sort: { createdAt: -1 } },
+                {
+                    $lookup: {
+                        from: "enrollments",
+                        let: { courseId: "$_id" },
+                        pipeline: [
+                            {
+                                $match: {
+                                    $expr: { $eq: ["$course", "$$courseId"] },
+                                    status: "active"
+                                }
+                            },
+                            { $count: "count" }
+                        ],
+                        as: "enrollmentMeta"
+                    }
+                },
+                { $unwind: { path: "$enrollmentMeta", preserveNullAndEmptyArrays: true } },
+                { $addFields: { enrollmentCount: { $ifNull: ["$enrollmentMeta.count", 0] } } },
+                { $project: { enrollmentMeta: 0 } }
+            ]);
             
-            // Add enrollmentCount to each course
-            const coursesWithCounts = await Promise.all(
-                courses.map(async (course) => {
-                    const count = await Enrollment.countDocuments({ 
-                        course: course._id, 
-                        status: "active" 
-                    });
-                    return { ...course, enrollmentCount: count };
-                })
-            );
-            
-            return res.json({ courses: coursesWithCounts });
+            return res.json({ courses });
         }
 
         // Student - show enrolled courses
@@ -297,6 +310,249 @@ const removeEnrollment = async (req: AuthRequest, res: Response) => {
     }
 };
 
+// Export all course quiz grades as CSV
+const exportCourseGradesCsv = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id: courseId } = req.params;
+        
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ errMsg: "Course not found" });
+        
+        // Verify teacher ownership
+        if (!req.user || req.user._id !== course.teacher.toString()) {
+            return res.status(403).json({ errMsg: "Forbidden" });
+        }
+        
+        // Get all published quizzes for this course
+        const quizzes = await Quiz.find({ 
+            course: course._id, 
+            published: true 
+        }).select("_id title").lean();
+        
+        if (quizzes.length === 0) {
+            return res.status(404).json({ errMsg: "No published quizzes in this course" });
+        }
+        
+        // Get all graded/submitted/late attempts for all quizzes in this course
+        const quizIds = quizzes.map(q => q._id);
+        const attempts = await Attempt.find({
+            quiz: { $in: quizIds },
+            status: { $in: ["graded", "late", "submitted"] },
+        })
+            .populate("user", "name email")
+            .populate({ 
+                path: "quiz", 
+                model: "Quiz",
+                select: "title" 
+            })
+            .populate({ path: "responses.question", model: "Question" })
+            .select("user quiz score submittedAt status responses")
+            .sort({ submittedAt: -1 })
+            .lean();
+        
+        // Get all questions for max score calculation
+        const allQuestions = await Question.find({ quiz: { $in: quizIds } }).lean();
+        const maxScorePerQuestion: Record<string, number> = {};
+        for (const q of allQuestions) {
+            maxScorePerQuestion[q._id.toString()] = q.points || 1;
+        }
+        
+        // Build CSV content
+        const headers = ["Quiz Title", "Student Name", "Email", "Score", "Submitted At", "Status"];
+        const rows = [headers.join(",")];
+        
+        for (const a of attempts) {
+            const quiz = a.quiz as any;
+            const student = a.user as any;
+            const quizTitle = quiz?.title || "Unknown Quiz";
+            const studentName = student?.name || "Unknown";
+            const email = student?.email || "";
+            
+            // Calculate raw score
+            const rawScore = a.responses?.reduce((sum, r) => {
+                return sum + ((r as any).pointsAwarded || 0);
+            }, 0) || 0;
+            
+            // Calculate max possible points for this attempt
+            const maxPoints = a.responses?.reduce((sum, r) => {
+                const qId = (r as any).question?._id?.toString() || (r as any).question?.toString();
+                return sum + (maxScorePerQuestion[qId] || 1);
+            }, 0) || 0;
+            
+            const scoreDisplay = `(${rawScore}/${maxPoints})`;
+            const submittedAt = a.submittedAt ? new Date(a.submittedAt).toLocaleString("en-GB") : "";
+            const status = a.status || "unknown";
+            
+            // Simple escape for CSV
+            const escapeCsv = (field: string) => {
+                if (field.includes(",") || field.includes('"')) {
+                    return `"${field.replace(/"/g, '""')}"`;
+                }
+                return field;
+            };
+            
+            const row = [
+                escapeCsv(quizTitle),
+                escapeCsv(studentName),
+                escapeCsv(email),
+                escapeCsv(scoreDisplay),
+                escapeCsv(submittedAt),
+                escapeCsv(status),
+            ].join(",");
+            
+            rows.push(row);
+        }
+        
+        const csv = rows.join("\n");
+        const filename = `course-grades-${course.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+        
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(csv);
+    } catch (error) {
+        console.error("Export course grades error:", error instanceof Error ? error.message : error);
+        return res.status(500).json({ errMsg: "Failed to export course grades" });
+    }
+};
+
+// Export grades matrix (students as rows, quizzes as columns)
+const exportGradesMatrixCsv = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id: courseId } = req.params;
+        
+        const course = await Course.findById(courseId);
+        if (!course) return res.status(404).json({ errMsg: "Course not found" });
+        
+        // Verify teacher ownership
+        if (!req.user || req.user._id !== course.teacher.toString()) {
+            return res.status(403).json({ errMsg: "Forbidden" });
+        }
+        
+        // Get all active enrollments in this course
+        const enrollments = await Enrollment.find({ 
+            course: course._id, 
+            status: "active" 
+        }).populate("user", "name").lean();
+        
+        if (enrollments.length === 0) {
+            return res.status(404).json({ errMsg: "No students enrolled in this course" });
+        }
+        
+        // Get all published quizzes, sorted by createdAt descending (newest first)
+        const quizzes = await Quiz.find({ 
+            course: course._id, 
+            published: true 
+        }).select("_id title createdAt").sort({ createdAt: -1 }).lean();
+        
+        if (quizzes.length === 0) {
+            return res.status(404).json({ errMsg: "No published quizzes in this course" });
+        }
+        
+        // Create quiz map for lookup
+        const quizMap: Record<string, { id: string, title: string }> = {};
+        for (const q of quizzes) {
+            quizMap[q._id.toString()] = { id: q._id.toString(), title: q.title };
+        }
+        
+        const quizIds = quizzes.map(q => q._id);
+        const quizTitles = quizzes.map(q => q.title);
+        
+        // Get all attempts for these quizzes (need to populate questions to get points)
+        const attempts = await Attempt.find({
+            quiz: { $in: quizIds },
+            status: { $in: ["graded", "late", "submitted"] },
+        })
+            .populate("user", "name")
+            .populate({ path: "responses.question", model: "Question" })
+            .lean();
+        
+        // Build student scores map: studentId -> quizId -> score
+        const studentScores: Record<string, Record<string, string>> = {};
+        
+        // Initialize all students
+        for (const e of enrollments) {
+            const userObj = e.user as any;
+            if (userObj && userObj._id) {
+                const studentId = userObj._id.toString();
+                studentScores[studentId] = {};
+            }
+        }
+        
+        // Process each attempt
+        for (const a of attempts) {
+            const userObj = a.user as any;
+            const studentId = userObj?._id?.toString();
+            if (!studentId || !studentScores[studentId]) continue;
+            
+            const quizId = a.quiz?.toString();
+            if (!quizId || !quizMap[quizId]) continue;
+            
+            // Calculate score using the questions from the attempt
+            const rawScore = a.responses?.reduce((sum: number, r: any) => {
+                return sum + (r.pointsAwarded || 0);
+            }, 0) || 0;
+            
+            const maxPoints = a.responses?.reduce((sum: number, r: any) => {
+                const question = r.question as any;
+                return sum + (question?.points || 1);
+            }, 0) || 0;
+            
+            studentScores[studentId][quizId] = `(${rawScore}/${maxPoints})`;
+        }
+        
+        // Get student names from enrollments, sorted alphabetically
+        const studentList = enrollments
+            .map(e => {
+                const userObj = e.user as any;
+                return { id: userObj?._id?.toString(), name: userObj?.name || "Unknown" };
+            })
+            .filter(s => s.id)
+            .sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Build CSV: Column 1 = Student Name, then quiz titles
+        const headers = ["Student Name", ...quizTitles];
+        const rows = [headers.join(",")];
+        
+        for (const student of studentList) {
+            const studentId = student.id!;
+            const scores = studentScores[studentId] || {};
+            const rowScores: string[] = [student.name];
+            
+            // For each quiz (in order - newest first)
+            for (const quiz of quizzes) {
+                const quizId = quiz._id.toString();
+                const score = scores[quizId] || "(0/0)";
+                rowScores.push(score);
+            }
+            
+            // Escape fields - quote score fields
+            const escapeCsv = (field: string, isScore: boolean = false) => {
+                // Quote scores to prevent Excel parsing as dates
+                if (isScore && /^\(\d+\/\d+\)$/.test(field)) {
+                    return field; // Already has parentheses
+                }
+                if (field.includes(",") || field.includes('"')) {
+                    return `"${field.replace(/"/g, '""')}"`;
+                }
+                return field;
+            };
+            
+            // First field is name (no score), rest are scores
+            rows.push([rowScores[0], ...rowScores.slice(1).map(f => escapeCsv(f, true))].join(","));
+        }
+        
+        const csv = rows.join("\n");
+        const filename = `course-grades-matrix-${course.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+        
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(csv);
+    } catch (error) {
+        console.error("Export grades matrix error:", error instanceof Error ? error.message : error);
+        return res.status(500).json({ errMsg: "Failed to export grades matrix" });
+    }
+};
+
 export {
     getCourse,
     createCourse,
@@ -307,4 +563,6 @@ export {
     removeEnrollment,
     listAllCourses,
     listMyCourses,
+    exportCourseGradesCsv,
+    exportGradesMatrixCsv,
 };

@@ -47,5 +47,7 @@ attemptSchema.index({ quiz: 1, status: 1 });
 attemptSchema.index({ user: 1, quiz: 1, status: 1 });
 attemptSchema.index({ user: 1, status: 1 });
 attemptSchema.index({ status: 1, endAt: 1 });
+attemptSchema.index({ user: 1, quiz: 1, status: 1, submittedAt: -1 });
+attemptSchema.index({ quiz: 1, status: 1, submittedAt: -1 });
 
 export default model<IAttempt>("Attempt", attemptSchema);

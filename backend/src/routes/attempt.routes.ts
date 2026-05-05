@@ -41,16 +41,27 @@ router.put(
     autosaveLimiter,
     attemptController.autoSaveAnswer,
 );
+// Stricter limiter for quiz submission
+const submitLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10, // Only 10 submissions per minute per IP
+    message: { error: "Too many submission requests, please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
 router.post(
     "/:attemptId/submit",
     authMiddleware,
     requireRole("student"),
+    submitLimiter,
     attemptController.submitAttempt,
 );
 router.put(
     "/:attemptId/submit",
     authMiddleware,
     requireRole("student"),
+    submitLimiter,
     attemptController.submitAttempt,
 );
 router.get(

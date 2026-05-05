@@ -1,4 +1,5 @@
-import { Award } from "lucide-react";
+import { Award, Download, Table } from "lucide-react";
+import useAuthStore from "../../stores/Authstore.js";
 
 export default function CourseGradesTab({
     quizzes,
@@ -8,15 +9,98 @@ export default function CourseGradesTab({
     setSelectedQuizTitle,
     gradesLoading,
     gradesError,
-    quizGrades
+    quizGrades,
+    courseId
 }) {
+    const { token } = useAuthStore();
+    
+    const exportQuizGrades = async (quizId, quizTitle) => {
+        try {
+            const response = await fetch(`/api/quizzes/${quizId}/grades/export`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Export failed");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `quiz-grades-${quizTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error("Export failed:", error);
+        }
+    };
+    
+    const exportCourseGrades = async () => {
+        try {
+            const response = await fetch(`/api/courses/${courseId}/grades/export`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Export failed");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `course-grades.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error("Export failed:", error);
+        }
+    };
+    
+    const exportGradesMatrix = async () => {
+        try {
+            const response = await fetch(`/api/courses/${courseId}/grades/matrix-export`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!response.ok) throw new Error("Export failed");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `course-grades-matrix.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            console.error("Export matrix failed:", error);
+        }
+    };
+    
     return (
         <div className="glass-panel overflow-hidden rounded-3xl border border-white/40 dark:border-slate-700/50 shadow-xl">
             <div className="p-8">
-                <h2 className="card-title text-2xl mb-6 flex items-center gap-2 text-slate-900 dark:text-white">
-                    <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                    Student Grades by Quiz
-                </h2>
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="card-title text-2xl flex items-center gap-2 text-slate-900 dark:text-white">
+                        <Award className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        Student Grades by Quiz
+                    </h2>
+                    {quizzes.length > 0 && (
+                        <div className="flex gap-2">
+                            <button
+                                onClick={exportCourseGrades}
+                                className="btn btn-sm btn-outline gap-2"
+                            >
+                                <Download className="w-4 h-4" />
+                                Export All Grades
+                            </button>
+                            <button
+                                onClick={exportGradesMatrix}
+                                className="btn btn-sm btn-outline gap-2"
+                            >
+                                <Table className="w-4 h-4" />
+                                Export Matrix
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {quizzes.length === 0 ? (
                     <div className="text-center py-12">
@@ -58,9 +142,19 @@ export default function CourseGradesTab({
                         {/* Grades Table */}
                         {selectedQuiz && (
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-6">
-                                <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
-                                    Grades for: {selectedQuizTitle}
-                                </h3>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                                        Grades for: {selectedQuizTitle}
+                                    </h3>
+                                    <button
+                                        onClick={() => exportQuizGrades(selectedQuiz, selectedQuizTitle)}
+                                        className="btn btn-sm btn-outline gap-2"
+                                        disabled={gradesLoading || quizGrades.length === 0}
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
+                                </div>
 
                                 {gradesLoading ? (
                                     <div className="flex items-center justify-center py-12">
@@ -99,7 +193,7 @@ export default function CourseGradesTab({
                                                             {grade.student?.email || "-"}
                                                         </td>
                                                         <td className="font-bold text-lg text-slate-900 dark:text-white">
-                                                            {grade.score}%
+                                                            {grade.rawScore || `${grade.score}%`}
                                                         </td>
                                                         <td className="text-slate-600 dark:text-slate-300">
                                                             {grade.submittedAt

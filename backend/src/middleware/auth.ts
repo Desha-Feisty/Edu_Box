@@ -41,7 +41,6 @@ const authMiddleware = async (
         console.error("JWT verification error:", message);
         return res.status(401).json({
             errMsg: "unable to verify user",
-            details: message,
         });
     }
 };

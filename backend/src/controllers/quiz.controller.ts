@@ -461,6 +461,31 @@ const getQuizDetails = async (req: AuthRequest, res: Response) => {
         if (!isTeacher && !isStudent)
             return res.status(403).json({ errMsg: "forbidden" });
         
+        // Check timing for students - don't reveal content before quiz opens
+        const now = new Date();
+        const isNotYetOpen = quiz.openAt && now < new Date(quiz.openAt);
+        const isClosed = quiz.closeAt && now > new Date(quiz.closeAt);
+        
+        if (isStudent && !isTeacher && isNotYetOpen) {
+            return res.status(200).json({ 
+                quiz: {
+                    _id: quiz._id,
+                    title: quiz.title,
+                    description: quiz.description,
+                    openAt: quiz.openAt,
+                    closeAt: quiz.closeAt,
+                    durationMinutes: quiz.durationMinutes,
+                    attemptsAllowed: quiz.attemptsAllowed,
+                    questionsPerAttempt: quiz.questionsPerAttempt,
+                    published: quiz.published,
+                    gradingMode: quiz.gradingMode,
+                }, 
+                questions: [],
+                questionCount: null,
+                timingStatus: "upcoming"
+            });
+        }
+        
         const questionCount = await Question.countDocuments({ quiz: quizId });
         
         const questions = isTeacher 
@@ -470,7 +495,8 @@ const getQuizDetails = async (req: AuthRequest, res: Response) => {
         return res.status(200).json({ 
             quiz, 
             questions,
-            questionCount 
+            questionCount,
+            timingStatus: isNotYetOpen ? "upcoming" : isClosed ? "closed" : "open"
         });
     } catch (error) {
         console.error(error instanceof Error ? error.message : error);

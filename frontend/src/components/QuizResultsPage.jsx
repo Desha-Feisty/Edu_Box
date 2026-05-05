@@ -237,7 +237,7 @@ function QuizResultsPage() {
                             </div>
                             <div className="text-2xl font-semibold text-gray-800">
                                 {totalPointsPossible > 0
-                                    ? `Score: ${rawScore} / ${totalPointsPossible} points`
+                                    ? `Score: (${rawScore}/${totalPointsPossible}) points`
                                     : `Score: ${rawScore} points`}
                             </div>
                         </div>

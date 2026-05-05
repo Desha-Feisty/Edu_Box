@@ -11,6 +11,8 @@ import {
     removeEnrollment,
     listAllCourses,
     listMyCourses,
+    exportCourseGradesCsv,
+    exportGradesMatrixCsv,
 } from "../controllers/course.controller.js";
 
 const router = Router();
@@ -34,6 +36,18 @@ router.patch("/:id", authMiddleware, requireRole("teacher"), updateCourse);
 router.delete("/:id", authMiddleware, requireRole("teacher"), deleteCourse);
 router.post("/join", authMiddleware, requireRole("student"), joinCourseByCode);
 router.get("/:id/roster", authMiddleware, requireRole("teacher"), getRoster);
+router.get(
+    "/:id/grades/export",
+    authMiddleware,
+    requireRole("teacher"),
+    exportCourseGradesCsv,
+);
+router.get(
+    "/:id/grades/matrix-export",
+    authMiddleware,
+    requireRole("teacher"),
+    exportGradesMatrixCsv,
+);
 router.delete(
     "/:id/enrollment",
     authMiddleware,

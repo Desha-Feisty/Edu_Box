@@ -452,6 +452,7 @@ function TeacherCoursePage() {
                         gradesLoading={gradesLoading}
                         gradesError={gradesError}
                         quizGrades={quizGrades}
+                        courseId={id}
                     />
                 )}
 

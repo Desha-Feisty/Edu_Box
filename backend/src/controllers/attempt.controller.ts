@@ -365,6 +365,10 @@ const listQuizGrades = async (req: AuthRequest, res: Response) => {
                 (sum, r) => sum + (((r.question as any)?.points) || 1),
                 0,
             ) || 0;
+            const rawScore = a.responses?.reduce(
+                (sum, r) => sum + ((r as any).pointsAwarded || 0),
+                0,
+            ) || 0;
             const scorePercentage =
                 totalPossiblePoints > 0 && a.score !== undefined
                     ? Math.round((a.score / totalPossiblePoints) * 100)
@@ -374,6 +378,7 @@ const listQuizGrades = async (req: AuthRequest, res: Response) => {
                 attemptId: a._id,
                 student: a.user,
                 score: scorePercentage,
+                rawScore: `(${rawScore}/${totalPossiblePoints})`,
                 submittedAt: a.submittedAt,
                 status: a.status,
             };
@@ -387,6 +392,92 @@ const listQuizGrades = async (req: AuthRequest, res: Response) => {
         });
     } catch (err) {
         return res.status(500).json({ error: "List grades failed" });
+    }
+};
+
+// Export quiz grades as CSV
+const exportQuizGradesCsv = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id: quizId } = req.params;
+        const quiz = await Quiz.findById(quizId).populate("course");
+        if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+        if (quiz.course instanceof Types.ObjectId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+        if (!quiz.course?.teacher)
+            return res.status(403).json({ error: "Forbidden" });
+        if (quiz.course.teacher.toString() !== req.user?._id)
+            return res.status(403).json({ error: "Forbidden" });
+        
+        const attempts = await Attempt.find({
+            quiz: quiz._id,
+            status: { $in: ["graded", "late", "submitted"] },
+        })
+            .populate("user", "name email")
+            .populate({ path: "responses.question", model: "Question" })
+            .select("user score submittedAt status responses")
+            .sort({ submittedAt: -1 })
+            .lean();
+        
+        // Calculate max possible points per question
+        const questions = await Question.find({ quiz: quiz._id }).lean();
+        const maxScorePerQuestion: Record<string, number> = {};
+        for (const q of questions) {
+            maxScorePerQuestion[q._id.toString()] = q.points || 1;
+        }
+        
+        // Build CSV content
+const headers = ["Student Name", "Email", "Score", "Submitted At", "Status"];
+        const rows = [headers.join(",")];
+        
+        for (const a of attempts) {
+            const student = a.user as any;
+            const studentName = student?.name || "Unknown";
+            const email = student?.email || "";
+            
+            // Calculate raw score
+            const rawScore = a.responses?.reduce((sum, r) => {
+                return sum + ((r as any).pointsAwarded || 0);
+            }, 0) || 0;
+            
+            // Calculate max possible points for this attempt
+            const maxPoints = a.responses?.reduce((sum, r) => {
+                const qId = (r as any).question?._id?.toString() || (r as any).question?.toString();
+                return sum + (maxScorePerQuestion[qId] || 1);
+            }, 0) || 0;
+            
+            const scoreDisplay = `(${rawScore}/${maxPoints})`;
+            const submittedAt = a.submittedAt ? new Date(a.submittedAt).toLocaleString("en-GB") : "";
+            const status = a.status || "unknown";
+            
+            // Simple escape for CSV
+            const escapeCsv = (field: string) => {
+                if (field.includes(",") || field.includes('"')) {
+                    return `"${field.replace(/"/g, '""')}"`;
+                }
+                return field;
+            };
+            
+            const row = [
+                escapeCsv(studentName),
+                escapeCsv(email),
+                escapeCsv(scoreDisplay),
+                escapeCsv(submittedAt),
+                escapeCsv(status),
+            ].join(",");
+            
+            rows.push(row);
+        }
+        
+        const csv = rows.join("\n");
+        const filename = `quiz-grades-${quiz.title.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-${new Date().toISOString().split("T")[0]}.csv`;
+        
+        res.setHeader("Content-Type", "text/csv; charset=utf-8");
+        res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+        return res.send(csv);
+    } catch (err) {
+        console.error("Export quiz grades error:", err);
+        return res.status(500).json({ error: "Export failed" });
     }
 };
 
@@ -684,6 +775,7 @@ export {
     submitAttempt,
     getResult,
     listQuizGrades,
+    exportQuizGradesCsv,
     listMyGrades,
     startAttemptFromBody,
     getStudentCourseGrades,
