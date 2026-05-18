@@ -40,8 +40,8 @@ function AdminLayout() {
     const { token } = useAuthStore();
     const { stats, enhancedStats, systemHealth, users, loading: contextLoading, refreshSystemHealth } = useAdmin();
     
-    const [activeTab, setActiveTab] = useState("overview");
-    const [healthLoading, setHealthLoading] = useState(false);
+    const [_activeTab, setActiveTab] = useState("overview");
+    const [_healthLoading, setHealthLoading] = useState(false);
     const [isInitializing, setIsInitializing] = useState(true);
 
     // Mark initialization complete after first render — prevents double loading flash
@@ -61,7 +61,7 @@ function AdminLayout() {
         setHealthLoading(true);
         try {
             await refreshSystemHealth();
-        } catch (_err) {
+        } catch {
             toast.error("Failed to fetch system health");
         } finally {
             setHealthLoading(false);
@@ -144,7 +144,8 @@ export function useAdminData() {
 }
 
 // Export shared data for child components
-export function AdminOverviewContent({ stats, enhancedStats, systemHealth, _healthLoading, _fetchSystemHealth }) {
+// eslint-disable-next-line no-unused-vars
+export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
     return (
         <div className="space-y-8">
             {/* Stats Grid */}

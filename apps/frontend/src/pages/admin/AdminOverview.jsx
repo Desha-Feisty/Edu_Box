@@ -9,8 +9,6 @@ function AdminOverview() {
             stats={context.stats || {}}
             enhancedStats={context.enhancedStats}
             systemHealth={context.systemHealth}
-            healthLoading={context.healthLoading}
-            fetchSystemHealth={context.fetchSystemHealth}
         />
     );
 }

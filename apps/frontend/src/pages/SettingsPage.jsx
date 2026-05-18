@@ -65,7 +65,7 @@ function SettingsPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             setTickets(res.data.tickets || []);
-        } catch (_err) {
+        } catch {
             // Silent fail
         } finally {
             setIsLoadingTickets(false);

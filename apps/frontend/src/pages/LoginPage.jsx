@@ -68,7 +68,7 @@ function LoginPage() {
             } else {
                 toast.error(response.errMsg || "Login failed");
             }
-        } catch (_error) {
+        } catch {
             toast.error("An unexpected error occurred");
         }
     }
