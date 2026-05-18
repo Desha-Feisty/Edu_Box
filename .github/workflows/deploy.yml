@@ -30,10 +30,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          rm -f apps/backend/package-lock.json apps/frontend/package-lock.json
+          npm install
 
       - name: Build application
         working-directory: apps/frontend

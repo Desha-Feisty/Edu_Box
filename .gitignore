@@ -11,6 +11,7 @@ lerna-debug.log*
 # Monorepo Workspaces
 # ============================================
 apps/*/node_modules/
+apps/*/package-lock.json
 packages/*/node_modules/
 
 # ============================================
