@@ -37,6 +37,23 @@ import {
     GraduationCap,
 } from "lucide-react";
 
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-white dark:bg-base-200 px-4 py-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
+                <p className="font-semibold text-slate-900 dark:text-white">{label}</p>
+                {payload.map((entry, index) => (
+                    <p key={index} className="text-sm" style={{ color: entry.color }}>
+                        {entry.name}: {entry.value}
+                        {entry.name === "Score" ? "%" : ""}
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 function AnalyticsPage() {
     const navigate = useNavigate();
     const { role, token } = useAuthStore();
@@ -184,22 +201,7 @@ function AnalyticsPage() {
         red: "#EF4444",
     };
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-white dark:bg-base-200 px-4 py-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                    <p className="font-semibold text-slate-900 dark:text-white">{label}</p>
-                    {payload.map((entry, index) => (
-                        <p key={index} className="text-sm" style={{ color: entry.color }}>
-                            {entry.name}: {entry.value}
-                            {entry.name === "Score" ? "%" : ""}
-                        </p>
-                    ))}
-                </div>
-            );
-        }
-        return null;
-    };
+
 
     if (isLoading) {
         return (

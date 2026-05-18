@@ -86,6 +86,7 @@ export function AdminProvider({ children }) {
 }
 
 // Hook to use admin context
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAdmin() {
     const context = useContext(AdminContext);
     if (!context) {

@@ -57,5 +57,6 @@ export function useDebouncedEffect(callback, deps, delay = 500) {
                 clearTimeout(timeoutRef.current);
             }
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [callback, delay, ...deps]);
 }

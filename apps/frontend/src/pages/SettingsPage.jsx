@@ -282,7 +282,6 @@ function SettingsPage() {
                                     </div>
                                     <button
                                         type="submit"
-                                        disabled={isLoading}
                                         className="btn btn-primary w-full rounded-xl mt-4"
                                     >
                                         <Save className="w-5 h-5 mr-2" />

@@ -23,7 +23,7 @@ function GlobalSearch({ isOpen, onClose, searchQuery, setSearchQuery, triggerRef
     const { theme } = useThemeStore();
     const isDark = theme === "night";
     const query = searchQuery ?? "";
-    const setQuery = setSearchQuery ?? (() => {});
+
     const [results, setResults] = useState({ courses: [], notes: [], quizzes: [], users: [], tickets: [], students: [] });
     const [isLoading, setIsLoading] = useState(false);
     const [activeFilter, setActiveFilter] = useState("all");
@@ -73,12 +73,11 @@ function GlobalSearch({ isOpen, onClose, searchQuery, setSearchQuery, triggerRef
         return () => clearTimeout(timer);
     }, [query, token, isOpen, activeFilter]);
 
-    // Reset when opening
     useEffect(() => {
         if (isOpen) {
             setSelectedIndex(0);
-            if (!searchQuery) {
-                setQuery("");
+            if (!searchQuery && setSearchQuery) {
+                setSearchQuery("");
             }
             setResults({ courses: [], notes: [], quizzes: [], users: [], tickets: [], students: [] });
             setActiveFilter("all");
@@ -97,7 +96,7 @@ function GlobalSearch({ isOpen, onClose, searchQuery, setSearchQuery, triggerRef
                 });
             }
         }
-    }, [isOpen, searchQuery, setQuery, triggerRef]);
+    }, [isOpen, searchQuery, setSearchQuery, triggerRef]);
 
     // Get all results based on active filter
     const getAllResults = () => {

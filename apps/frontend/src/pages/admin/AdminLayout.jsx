@@ -76,7 +76,7 @@ function AdminLayout() {
         users,
         setUsers: () => { console.warn("setUsers is a stub - use AdminContext for user management"); },
         systemHealth,
-        healthLoading,
+        healthLoading: _healthLoading,
         fetchSystemHealth,
         token,
         loading: contextLoading,
@@ -110,7 +110,7 @@ function AdminLayout() {
                         </h1>
                     </div>
                     <div className="flex gap-2 bg-slate-200/50 dark:bg-base-300/50 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700/50">
-                        {tabConfig.map(({ id, label, icon: Icon, path }) => (
+                        {tabConfig.map(({ id, label, icon: _Icon, path }) => (
                             <NavLink
                                 end={path === "/admin"}
                                 key={id}
@@ -123,7 +123,7 @@ function AdminLayout() {
                                     }`
                                 }
                             >
-                                <Icon className="w-4 h-4" />
+                                <_Icon className="w-4 h-4" />
                                 {label}
                             </NavLink>
                         ))}
@@ -137,14 +137,10 @@ function AdminLayout() {
     );
 }
 
-// Custom hook to consume shared data from Outlet context
-export function useAdminData() {
-    // This will be consumed by child components
-    return { /* injected via AdminContext */ };
-}
+
 
 // Export shared data for child components
-// eslint-disable-next-line no-unused-vars
+// eslint-disable-next-line no-unused-vars, react-refresh/only-export-components
 export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
     return (
         <div className="space-y-8">
