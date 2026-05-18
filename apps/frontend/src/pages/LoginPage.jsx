@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import useAuthStore from "../stores/Authstore";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { BookOpen, LogIn, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { BookOpen, LogIn, Mail, Lock, Eye, EyeOff, Users, GraduationCap } from "lucide-react";
 import PageWrapper from "../components/layout/PageWrapper";
 import useThemeStore from "../stores/ThemeStore";
 
@@ -94,7 +94,7 @@ function LoginPage() {
                                 <BookOpen className="w-10 h-10 text-white" />
                             </div>
                             <h1 className="text-5xl font-black tracking-tight text-slate-900 dark:text-white">
-                                Class
+                                Edu
                                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                                     Box
                                 </span>
@@ -113,7 +113,8 @@ function LoginPage() {
                         </div>
 
                         <div className="grid grid-cols-3 gap-6 pt-4 border-t border-slate-200 dark:border-slate-700/50">
-                            <div>
+                            <div className="flex flex-col items-center">
+                                <BookOpen className="w-6 h-6 text-blue-500 mb-2" />
                                 <div className="text-3xl font-bold mb-1 text-slate-900 dark:text-white">
                                     100+
                                 </div>
@@ -121,7 +122,8 @@ function LoginPage() {
                                     Courses
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex flex-col items-center">
+                                <Users className="w-6 h-6 text-purple-500 mb-2" />
                                 <div className="text-3xl font-bold mb-1 text-slate-900 dark:text-white">
                                     5K+
                                 </div>
@@ -129,7 +131,8 @@ function LoginPage() {
                                     Students
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex flex-col items-center">
+                                <GraduationCap className="w-6 h-6 text-indigo-500 mb-2" />
                                 <div className="text-3xl font-bold mb-1 text-slate-900 dark:text-white">
                                     50+
                                 </div>
