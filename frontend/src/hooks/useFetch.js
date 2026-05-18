@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
+import api from "../lib/api";
 
 /**
  * Custom hook for fetching data with loading, error, and caching support
+ * Uses configured api instance with proper auth interceptors
  */
 export function useFetch(url, options = {}) {
     const {
@@ -32,11 +33,7 @@ export function useFetch(url, options = {}) {
         setError(null);
 
         try {
-            const response = await axios.get(fetchUrl, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("token")}`,
-                },
-            });
+            const response = await api.get(fetchUrl);
             const result = response.data;
 
             if (cache) {
@@ -125,11 +122,8 @@ export function usePaginatedFetch(url, initialPage = 1) {
             setError(null);
 
             try {
-                const response = await axios.get(url, {
+                const response = await api.get(url, {
                     params: { page: pageNum },
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`,
-                    },
                 });
 
                 const result = response.data;

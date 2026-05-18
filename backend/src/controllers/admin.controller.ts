@@ -9,6 +9,7 @@ import ActivityLog from "../models/activityLog.js";
 import { Types } from "mongoose";
 import os from "os";
 import { getLogs as fetchLogs, getLogStats as fetchLogStats, exportLogsToCsv } from "../services/logger.js";
+import { getCache, setCache, clearCache } from "../utils/cache.js";
 import { PASSWORD_VALIDATION, PAGINATION } from "../utils/constants.js";
 
 // Sanitize search input to prevent regex injection
@@ -52,16 +53,8 @@ export const listUsers = async (req: AuthRequest, res: Response) => {
             filter.role = role;
         }
         
-        if (search) {
+if (search) {
             const searchRegex = new RegExp(sanitizeSearchInput(search), "i");
-            filter.$or = [
-                { name: { $regex: searchRegex } },
-                { email: { $regex: searchRegex } }
-            ];
-        }
-        
-        if (search) {
-            const searchRegex = new RegExp(search as string, "i");
             filter.$or = [
                 { name: { $regex: searchRegex } },
                 { email: { $regex: searchRegex } }
@@ -155,8 +148,13 @@ export const deleteUser = async (req: AuthRequest, res: Response) => {
 
 /**
  * Get high-level platform statistics
+ * Cached in Redis for 60 seconds.
  */
 export const getPlatformStats = async (req: AuthRequest, res: Response) => {
+    const CACHE_KEY = "admin:stats:platform";
+    const cached = await getCache<{ stats: unknown }>(CACHE_KEY);
+    if (cached) return res.status(200).json(cached);
+
     try {
         const [userCount, courseCount, quizCount, attemptCount] = await Promise.all([
             User.countDocuments(),
@@ -165,60 +163,97 @@ export const getPlatformStats = async (req: AuthRequest, res: Response) => {
             Attempt.countDocuments({ status: { $in: ["graded", "late"] } })
         ]);
 
-        res.status(200).json({
+        const result = {
             stats: {
                 totalUsers: userCount,
                 totalCourses: courseCount,
                 totalQuizzes: quizCount,
                 completedAttempts: attemptCount
             }
-        });
+        };
+        await setCache(CACHE_KEY, result, 300_000); // 5 min cache
+        return res.status(200).json(result);
     } catch (error) {
         console.error("Admin getPlatformStats error:", error);
-        res.status(500).json({ errMsg: "Failed to fetch platform stats" });
+        return res.status(500).json({ errMsg: "Failed to fetch platform stats" });
     }
 };
 
 /**
  * Get detailed platform analytics
+ * Uses batch queries instead of N+1 per-course lookups.
+ * Cached in Redis for 5 minutes.
  */
 export const getPlatformAnalytics = async (req: AuthRequest, res: Response) => {
-    try {
-        // Top Courses by performance/participation
-        const courses = await Course.find().populate("teacher", "name");
-        
-        const courseAnalytics = await Promise.all(courses.map(async (course) => {
-            // Parallel queries for independent data
-            const [studentCount, quizzes] = await Promise.all([
-                Enrollment.countDocuments({ course: course._id, status: "active" }),
-                Quiz.find({ course: course._id }),
-            ]);
-            const quizIds = quizzes.map(q => q._id);
-            
-            const attempts = await Attempt.find({ 
-                quiz: { $in: quizIds }, 
-                status: { $in: ["graded", "late"] } 
-            });
+    const CACHE_KEY = "admin:analytics";
+    const cached = await getCache<{ courseAnalytics: unknown[] }>(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
 
-            const avgScore = attempts.length > 0 
-                ? attempts.reduce((sum, a) => {
-                    const totalPointsPossible = a.maxScore || 1;
-                    return sum + ((a.score || 0) / totalPointsPossible) * 100;
-                }, 0) / attempts.length 
+    try {
+        const courses = await Course.find().populate("teacher", "name").lean();
+        const courseIds = courses.map(c => c._id);
+
+        // Batch fetch all data upfront — no per-course queries
+        const [enrollments, quizzes] = await Promise.all([
+            Enrollment.find({ course: { $in: courseIds }, status: "active" }).lean(),
+            Quiz.find({ course: { $in: courseIds } }).lean()
+        ]);
+
+        const quizIds = quizzes.map(q => q._id);
+        const attemptResults = await Attempt.find({
+            quiz: { $in: quizIds },
+            status: { $in: ["graded", "late"] }
+        }).lean();
+
+        // Pre-aggregate enrollment counts per course
+        const enrollmentCountByCourse: Record<string, number> = {};
+        for (const e of enrollments) {
+            const cid = String(e.course);
+            enrollmentCountByCourse[cid] = (enrollmentCountByCourse[cid] || 0) + 1;
+        }
+
+        // Pre-aggregate quiz counts and attempts per course
+        const quizCountByCourse: Record<string, number> = {};
+        const attemptScoreSum: Record<string, number> = {};
+        const attemptMaxSum: Record<string, number> = {};
+        const attemptCountByCourse: Record<string, number> = {};
+
+        for (const q of quizzes) {
+            const cid = String(q.course);
+            quizCountByCourse[cid] = (quizCountByCourse[cid] || 0) + 1;
+        }
+
+        for (const a of attemptResults) {
+            const qid = String(a.quiz);
+            const quiz = quizzes.find((qu) => String(qu._id) === qid);
+            if (!quiz) continue;
+            const cid = String(quiz.course);
+            attemptScoreSum[cid] = (attemptScoreSum[cid] || 0) + (a.score || 0);
+            attemptMaxSum[cid] = (attemptMaxSum[cid] || 0) + ((a.maxScore as number) || 0);
+            attemptCountByCourse[cid] = (attemptCountByCourse[cid] || 0) + 1;
+        }
+
+        // Compute per-course analytics in memory
+        const courseAnalytics = courses.map(course => {
+            const cid = String(course._id);
+            const maxSum = attemptMaxSum[cid] || 0;
+            const avgScore = maxSum > 0
+                ? Math.round(((attemptScoreSum[cid] ?? 0) / maxSum) * 100)
                 : 0;
 
             return {
                 id: course._id,
-                title: course.title,
-                teacher: (course.teacher as any)?.name || "Unknown",
-                studentCount,
-                quizCount: quizzes.length,
-                avgScore: Math.round(avgScore),
-                participation: attempts.length
+                title: course.title || "Untitled",
+                teacher: (course.teacher as { name?: string })?.name || "Unknown",
+                enrollmentCount: enrollmentCountByCourse[cid] || 0,
+                quizCount: quizCountByCourse[cid] || 0,
+                avgScore,
+                participation: attemptCountByCourse[cid] || 0
             };
-        }));
+        });
 
         res.status(200).json({ courseAnalytics });
+        await setCache(CACHE_KEY, { courseAnalytics }, 300_000); // 5 min cache
     } catch (error) {
         console.error("Admin getPlatformAnalytics error:", error);
         res.status(500).json({ errMsg: "Failed to fetch platform analytics" });
@@ -227,8 +262,15 @@ export const getPlatformAnalytics = async (req: AuthRequest, res: Response) => {
 
 /**
  * Get platform activity over time (last 7/30 days)
+ * Cached in Redis for 60 seconds.
  */
 export const getPlatformActivity = async (req: AuthRequest, res: Response) => {
+    const { days = "7" } = req.query;
+    const daysNum = parseInt(days as string) || 7;
+    const CACHE_KEY = `admin:activity:${daysNum}`;
+    const cached = await getCache(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
+
     try {
         const { days = "7" } = req.query;
         const daysNum = parseInt(days as string) || 7;
@@ -266,11 +308,13 @@ export const getPlatformActivity = async (req: AuthRequest, res: Response) => {
         const totalAttempts = result.reduce((sum, r) => sum + r.count, 0);
         const averageDaily = daysNum > 0 ? totalAttempts / daysNum : 0;
 
-        res.status(200).json({
+        const responseData = {
             dailyAttempts: result,
             totalAttempts,
             averageDaily: Math.round(averageDaily * 10) / 10
-        });
+        };
+        res.status(200).json(responseData);
+        await setCache(CACHE_KEY, responseData, 60_000); // 1 min cache
     } catch (error) {
         console.error("Admin getPlatformActivity error:", error);
         res.status(500).json({ errMsg: "Failed to fetch platform activity" });
@@ -279,58 +323,99 @@ export const getPlatformActivity = async (req: AuthRequest, res: Response) => {
 
 /**
  * Get teacher performance metrics
+ * Batches all queries upfront — no per-teacher N+1 lookups.
+ * Cached for 5 minutes.
  */
 export const getTeacherPerformance = async (req: AuthRequest, res: Response) => {
+    const CACHE_KEY = "admin:teachers:performance";
+    const cached = await getCache<{ teachers: unknown[] }>(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
+
     try {
         const teachers = await User.find({ role: "teacher" }).select("name email").lean();
-        
-        const teacherStats = await Promise.all(teachers.map(async (teacher) => {
-            const courses = await Course.find({ teacher: teacher._id }).select("_id").lean();
-            const courseIds = courses.map(c => c._id);
-            
-            const studentCount = await Enrollment.countDocuments({
-                course: { $in: courseIds },
-                status: "active"
-            });
-            
-            const quizzes = await Quiz.find({ 
-                course: { $in: courseIds },
-                published: true 
-            }).select("_id").lean();
-            const quizIds = quizzes.map(q => q._id);
-            
-            const attempts = await Attempt.find({
-                quiz: { $in: quizIds },
-                status: { $in: ["graded", "late"] }
-            }).lean();
-            
-            const avgScore = attempts.length > 0
-                ? attempts.reduce((sum, a) => {
-                    const totalPointsPossible = a.maxScore || 1;
-                    return sum + ((a.score || 0) / totalPointsPossible) * 100;
-                }, 0) / attempts.length
-                : 0;
 
-            // Active students (with at least one attempt)
-            const activeStudents = new Set(attempts.map(a => a.user.toString())).size;
+        // Batch fetch all data upfront
+        const [courses, enrollments, quizzes, attempts] = await Promise.all([
+            Course.find().select("_id teacher").lean(),
+            Enrollment.find({ status: "active" }).lean(),
+            Quiz.find({ published: true }).lean(),
+            Attempt.find({ status: { $in: ["graded", "late"] } }).lean()
+        ]);
+
+        // Index data by teacher for O(1) lookup
+        const coursesByTeacher: Record<string, typeof courses> = {};
+        for (const c of courses) {
+            const tid = String(c.teacher);
+            if (!coursesByTeacher[tid]) coursesByTeacher[tid] = [];
+            coursesByTeacher[tid].push(c);
+        }
+
+        // Index enrollments and quizzes by course ID
+        const enrollmentsByCourse: Record<string, number> = {};
+        for (const e of enrollments) {
+            const cid = String(e.course);
+            enrollmentsByCourse[cid] = (enrollmentsByCourse[cid] || 0) + 1;
+        }
+
+        const quizzesByCourse: Record<string, string[]> = {};
+        for (const q of quizzes) {
+            const cid = String(q.course);
+            if (!quizzesByCourse[cid]) quizzesByCourse[cid] = [];
+            quizzesByCourse[cid].push(String(q._id));
+        }
+
+        // Index attempts by quiz ID
+        const attemptsByQuiz: Record<string, typeof attempts> = {};
+        for (const a of attempts) {
+            const qid = String(a.quiz);
+            if (!attemptsByQuiz[qid]) attemptsByQuiz[qid] = [];
+            attemptsByQuiz[qid].push(a);
+        }
+
+        // Compute per-teacher stats in memory
+        const teacherStats = teachers.map(teacher => {
+            const tid = String(teacher._id);
+            const tCourses = coursesByTeacher[tid] || [];
+            const courseIds = tCourses.map(c => String(c._id));
+
+            const studentCount = courseIds.reduce((sum, cid) => sum + (enrollmentsByCourse[cid] || 0), 0);
+            const tQuizzes = courseIds.flatMap(cid => quizzesByCourse[cid] || []);
+
+            let totalScore = 0;
+            let totalMax = 0;
+            const activeStudentSet = new Set<string>();
+
+            for (const qid of tQuizzes) {
+                const qAttempts = attemptsByQuiz[qid] || [];
+                for (const a of qAttempts) {
+                    const uid = String(a.user);
+                    activeStudentSet.add(uid);
+                    totalScore += a.score || 0;
+                    totalMax += a.maxScore || 0;
+                }
+            }
+
+            const avgScore = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
 
             return {
                 id: teacher._id,
                 name: teacher.name,
                 email: teacher.email,
-                courseCount: courses.length,
+                courseCount: tCourses.length,
                 studentCount,
-                quizCount: quizzes.length,
-                avgScore: Math.round(avgScore),
-                activeStudents,
-                totalAttempts: attempts.length
+                quizCount: tQuizzes.length,
+                avgScore,
+                activeStudents: activeStudentSet.size,
+                totalAttempts: totalScore > 0 ? attempts.filter(a =>
+                    tQuizzes.includes(String(a.quiz))
+                ).length : 0
             };
-        }));
+        });
 
-        // Sort by avgScore descending
         teacherStats.sort((a, b) => b.avgScore - a.avgScore);
 
         res.status(200).json({ teachers: teacherStats });
+        await setCache(CACHE_KEY, { teachers: teacherStats }, 300_000); // 5 min cache
     } catch (error) {
         console.error("Admin getTeacherPerformance error:", error);
         res.status(500).json({ errMsg: "Failed to fetch teacher performance" });
@@ -339,63 +424,47 @@ export const getTeacherPerformance = async (req: AuthRequest, res: Response) => 
 
 /**
  * Get enhanced platform stats
+ * Uses aggregation pipelines instead of loading full datasets into memory.
+ * Cached in Redis for 5 minutes.
  */
 export const getEnhancedStats = async (req: AuthRequest, res: Response) => {
+    const CACHE_KEY = "admin:stats:enhanced";
+    const cached = await getCache<{ stats: unknown }>(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
+
     try {
-        const [
-            totalUsers,
-            totalStudents,
-            totalTeachers,
-            totalCourses,
-            totalQuizzes,
-            totalAttempts,
-            coursesWithQuizzes
-        ] = await Promise.all([
+        // Single aggregation for avg score (avoids loading all attempts into memory)
+        const [avgResult, participatedRecently] = await Promise.all([
+            Attempt.aggregate([
+                { $match: { status: { $in: ["graded", "late"] }, maxScore: { $gt: 0 } } },
+                { $group: { _id: null, totalScore: { $sum: "$score" }, totalMax: { $sum: "$maxScore" } } }
+            ]),
+            // Distinct users with attempts in last 30 days (aggregation, not find+distinct)
+            Attempt.aggregate([
+                { $match: { submittedAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, status: { $in: ["graded", "late"] } } },
+                { $group: { _id: "$user" } }
+            ])
+        ]);
+
+        const avgPlatformScore = avgResult[0]
+            ? (avgResult[0].totalScore / avgResult[0].totalMax) * 100
+            : 0;
+
+        const [totalUsers, totalStudents, totalTeachers, totalCourses, totalQuizzes, coursesWithQuizzes, newSignupsLast30Days, loginsLast30Days, activeThisWeek] = await Promise.all([
             User.countDocuments(),
             User.countDocuments({ role: "student" }),
             User.countDocuments({ role: "teacher" }),
             Course.countDocuments(),
             Quiz.countDocuments({ published: true }),
-            Attempt.countDocuments({ status: { $in: ["graded", "late"] } }),
-            Course.countDocuments({ quizCount: { $gt: 0 } })
+            Course.countDocuments({ quizCount: { $gt: 0 } }),
+            User.countDocuments({ createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+            User.countDocuments({ lastLogin: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }),
+            Attempt.countDocuments({ submittedAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } })
         ]);
-
-        // Calculate avg platform score
-        const attempts = await Attempt.find({ status: { $in: ["graded", "late"] } }).select("score maxScore").lean();
-        const avgPlatformScore = attempts.length > 0
-            ? attempts.reduce((sum, a) => {
-                const totalPointsPossible = a.maxScore || 1;
-                return sum + ((a.score || 0) / totalPointsPossible) * 100;
-            }, 0) / attempts.length
-            : 0;
-
-        // Active this week (users with activity in last 7 days)
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        const activeThisWeek = await Attempt.countDocuments({ submittedAt: { $gte: weekAgo } });
-
-        // Calculate participation rate (students with attempts in last 30 days)
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        const participatedRecently = await Attempt.distinct("user", {
-            submittedAt: { $gte: thirtyDaysAgo },
-            status: { $in: ["graded", "late"] }
-        });
 
         const participationRate = totalStudents > 0
             ? Math.round((participatedRecently.length / totalStudents) * 100)
             : 0;
-
-        // Calculate new signups in last 30 days
-        const newSignupsLast30Days = await User.countDocuments({
-            createdAt: { $gte: thirtyDaysAgo }
-        });
-
-        // Calculate logins in last 30 days
-        const loginsLast30Days = await User.countDocuments({
-            lastLogin: { $gte: thirtyDaysAgo }
-        });
 
         res.status(200).json({
             stats: {
@@ -404,7 +473,6 @@ export const getEnhancedStats = async (req: AuthRequest, res: Response) => {
                 totalTeachers,
                 totalCourses,
                 totalQuizzes,
-                totalAttempts,
                 coursesWithQuizzes,
                 avgPlatformScore: Math.round(avgPlatformScore),
                 activeThisWeek,
@@ -413,6 +481,7 @@ export const getEnhancedStats = async (req: AuthRequest, res: Response) => {
                 loginsLast30Days
             }
         });
+        await setCache(CACHE_KEY, { stats: { totalUsers, totalStudents, totalTeachers, totalCourses, totalQuizzes, coursesWithQuizzes, avgPlatformScore: Math.round(avgPlatformScore), activeThisWeek, participationRate, newSignupsLast30Days, loginsLast30Days } }, 300_000); // 5 min cache
     } catch (error) {
         console.error("Admin getEnhancedStats error:", error);
         res.status(500).json({ errMsg: "Failed to fetch enhanced stats" });
@@ -462,11 +531,20 @@ export const getLogs = async (req: AuthRequest, res: Response) => {
     }
 };
 
+/**
+ * Get log statistics
+ * Cached in Redis for 2 minutes.
+ */
 export const getLogStats = async (req: AuthRequest, res: Response) => {
+    const days = parseInt(req.query.days as string) || 30;
+    const CACHE_KEY = `admin:logs:stats:${days}`;
+    const cached = await getCache(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
+
     try {
-        const days = parseInt(req.query.days as string) || 30;
         const stats = await fetchLogStats(days);
         res.status(200).json(stats);
+        await setCache(CACHE_KEY, stats, 120_000); // 2 min cache
     } catch (error) {
         console.error("Admin getLogStats error:", error);
         res.status(500).json({ errMsg: "Failed to fetch log stats" });
@@ -521,7 +599,15 @@ export const exportLogs = async (req: AuthRequest, res: Response) => {
     }
 };
 
+/**
+ * Get system health metrics
+ * Cached in Redis for 30 seconds (changes frequently).
+ */
 export const getSystemHealth = async (req: AuthRequest, res: Response) => {
+    const CACHE_KEY = "admin:system-health";
+    const cached = await getCache(CACHE_KEY);
+    if (cached) { res.status(200).json(cached); return; }
+
     try {
         const [userCount, courseCount, quizCount, attemptCount, logCount] = await Promise.all([
             User.countDocuments(),
@@ -586,7 +672,7 @@ export const getSystemHealth = async (req: AuthRequest, res: Response) => {
             logs: dayCounts[i],
         }));
         
-        res.status(200).json({
+        const responseData = {
             platform: {
                 totalUsers: userCount,
                 totalCourses: courseCount,
@@ -611,7 +697,9 @@ export const getSystemHealth = async (req: AuthRequest, res: Response) => {
                 status: recentErrors > 10 ? "warning" : "healthy",
             },
             activityTrend: last7Days,
-        });
+        };
+        res.status(200).json(responseData);
+        await setCache(CACHE_KEY, responseData, 30_000);
     } catch (error) {
         console.error("Admin getSystemHealth error:", error);
         res.status(500).json({ errMsg: "Failed to fetch system health" });

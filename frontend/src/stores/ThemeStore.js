@@ -38,7 +38,6 @@ const useThemeStore = create((set, get) => ({
         // Already initialized at module load, but ensure consistency
         const saved = get().theme;
         applyThemeToDocument(saved);
-        console.log("Theme initialized:", saved);
     },
     
     toggleTheme: () => {
@@ -54,7 +53,6 @@ const useThemeStore = create((set, get) => ({
             // Apply
             applyThemeToDocument(newTheme);
             
-            console.log("Theme toggled to:", newTheme);
             set({ theme: newTheme });
         } catch (e) {
             console.error("Theme toggle error:", e);

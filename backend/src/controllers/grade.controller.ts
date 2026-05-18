@@ -5,6 +5,7 @@ import Enrollment from "../models/enrollment.js";
 import Attempt from "../models/attempt.js";
 import Quiz from "../models/quiz.js";
 import User from "../models/user.js";
+import ChatMessage from "../models/chat.js";
 
 // Get student grades for teacher
 export const getStudentGrades = async (req: AuthRequest, res: Response) => {
@@ -53,22 +54,34 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
         let totalScore = 0;
         let totalMaxScore = 0;
 
+        // Batch fetch all quizzes and attempts (replaces per-enrollment N+1 queries)
+        const allQuizzes = await Quiz.find({ course: { $in: courseIds }, published: true })
+            .select("_id course maxScore")
+            .lean();
+        const allQuizIds = allQuizzes.map((q) => q._id);
+
+        const allAttempts = await Attempt.find({
+            user: studentId,
+            quiz: { $in: allQuizIds },
+            status: "graded",
+        }).populate("quiz", "title maxScore pointsPerQuestion").lean();
+
         for (const enroll of enrollments) {
             const course = enroll.course as any;
-            
-            // Get all graded attempts for quizzes in this course
-            const quizzes = await Quiz.find({ course: course._id, published: true }).select("_id");
-            const quizIds = quizzes.map((q) => q._id);
 
-            const attempts = await Attempt.find({
-                user: studentId,
-                quiz: { $in: quizIds },
-                status: "graded",
-            }).populate("quiz", "title maxScore pointsPerQuestion");
+            // Filter to quizzes in this course
+            const courseQuizIds = allQuizzes
+                .filter((q) => String(q.course) === String(course._id))
+                .map((q) => q._id);
 
-            const courseAttempts = attempts.filter((a) => a.maxScore && a.maxScore > 0);
-            const courseScore = courseAttempts.reduce((sum, a) => sum + (a.score || 0), 0);
-            const courseMaxScore = courseAttempts.reduce((sum, a) => sum + (a.maxScore || 0), 0);
+            // Filter to attempts for those quizzes
+            const courseAttempts = allAttempts.filter(
+                (a) => courseQuizIds.some((qid) => String(qid) === String((a.quiz as any)._id)),
+            );
+            const gradedAttempts = courseAttempts.filter((a) => (a as any).maxScore && (a as any).maxScore > 0);
+
+            const courseScore = gradedAttempts.reduce((sum, a) => sum + ((a as any).score || 0), 0);
+            const courseMaxScore = gradedAttempts.reduce((sum, a) => sum + ((a as any).maxScore || 0), 0);
 
             const courseGrade = courseMaxScore > 0 ? Math.round((courseScore / courseMaxScore) * 100) : null;
 
@@ -77,8 +90,8 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
                 courseTitle: course.title,
                 grade: courseGrade,
                 maxGrade: 100,
-                completedQuizzes: courseAttempts.length,
-                totalQuizzes: quizIds.length,
+                completedQuizzes: gradedAttempts.length,
+                totalQuizzes: courseQuizIds.length,
             });
 
             if (courseMaxScore > 0) {
@@ -114,9 +127,15 @@ export const getStudentGrades = async (req: AuthRequest, res: Response) => {
             submittedAt: a.submittedAt || a.endAt,
         }));
 
-        // Check for existing chat in any course
+        // Check for existing chat in any course between student and teacher
         const firstEnrollment = enrollments[0];
-        const hasExistingChat = firstEnrollment ? true : false;
+        const hasExistingChat = await ChatMessage.exists({
+            $or: [
+                { sender: studentId, recipient: teacherId },
+                { sender: teacherId, recipient: studentId },
+            ],
+            course: { $in: courseIds },
+        });
 
         return res.status(200).json({
             student: {

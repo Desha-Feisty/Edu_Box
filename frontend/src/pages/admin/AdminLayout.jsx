@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
-import axios from "axios";
 import toast from "react-hot-toast";
 import useAuthStore from "../../stores/Authstore";
 import PageWrapper from "../../components/layout/PageWrapper";
+import { useAdmin } from "../../contexts/AdminContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { 
     Users, 
@@ -38,21 +38,16 @@ const pathToTabId = {
 
 function AdminLayout() {
     const { token } = useAuthStore();
+    const { stats, enhancedStats, systemHealth, users, loading: contextLoading, refreshSystemHealth } = useAdmin();
+    
     const [activeTab, setActiveTab] = useState("overview");
-    const [users, setUsers] = useState([]);
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        totalCourses: 0,
-        totalQuizzes: 0,
-        completedAttempts: 0
-    });
-    const [enhancedStats, setEnhancedStats] = useState(null);
-    const [courseAnalytics, setCourseAnalytics] = useState([]);
-    const [activityData, setActivityData] = useState(null);
-    const [teacherStats, setTeacherStats] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [systemHealth, setSystemHealth] = useState(null);
     const [healthLoading, setHealthLoading] = useState(false);
+    const [isInitializing, setIsInitializing] = useState(true);
+
+    // Mark initialization complete after first render — prevents double loading flash
+    useLayoutEffect(() => {
+        setIsInitializing(false);
+    }, []);
 
     // Sync activeTab from URL
     const location = useLocation();
@@ -62,42 +57,10 @@ function AdminLayout() {
         setActiveTab(tabId);
     }, [location.pathname]);
 
-    // Fetch all shared data
-    useEffect(() => {
-        const fetchData = async () => {
-            if (!token) return;
-            setLoading(true);
-            try {
-                const [statsRes, usersRes, analyticsRes, healthRes, enhancedRes, activityRes, teacherRes] = await Promise.all([
-                    axios.get("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/analytics", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/system-health", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/stats/enhanced", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/activity?days=7", { headers: { Authorization: `Bearer ${token}` } }),
-                    axios.get("/api/admin/teachers", { headers: { Authorization: `Bearer ${token}` } })
-                ]);
-                setStats(statsRes.data.stats);
-                setUsers(usersRes.data.users);
-                setCourseAnalytics(analyticsRes.data.courseAnalytics);
-                setSystemHealth(healthRes.data);
-                setEnhancedStats(enhancedRes.data.stats);
-                setActivityData(activityRes.data);
-                setTeacherStats(teacherRes.data.teachers || []);
-            } catch (err) {
-                toast.error("Failed to load dashboard data");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
-    }, [token]);
-
     const fetchSystemHealth = async () => {
         setHealthLoading(true);
         try {
-            const res = await axios.get("/api/admin/system-health", { headers: { Authorization: `Bearer ${token}` } });
-            setSystemHealth(res.data);
+            await refreshSystemHealth();
         } catch (err) {
             toast.error("Failed to fetch system health");
         } finally {
@@ -106,22 +69,23 @@ function AdminLayout() {
     };
 
     // Provide shared data via context-like pattern (direct props)
+    // Now using context values instead of local state
     const sharedData = {
         stats,
         enhancedStats,
         users,
-        setUsers,
-        courseAnalytics,
-        activityData,
-        teacherStats,
+        setUsers: () => {}, // Not needed anymore, context handles it
+        courseAnalytics: [],
+        activityData: null,
+        teacherStats: [],
         systemHealth,
         healthLoading,
         fetchSystemHealth,
         token,
-        loading,
+        loading: contextLoading,
     };
 
-    if (loading) {
+    if (contextLoading && !isInitializing) {
         return (
             <PageWrapper>
                 <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -259,7 +223,7 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth, healt
                                     : `High error count detected (${systemHealth.health.errorsLast24h} in last 24h). Check logs.`
                                 }
                             </p>
-                            <div className="w-full mt-4">
+                            <div className="w-full mt-4 min-h-[120px]">
                                 <ResponsiveContainer width="100%" height={120}>
                                     <LineChart data={systemHealth.activityTrend || []}>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

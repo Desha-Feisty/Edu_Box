@@ -5,12 +5,9 @@ export default function StudentQuizzesTab({
     startingQuizId,
     handleStartQuiz
 }) {
-    const handleClick = (quizId, e) => {
-        console.log(`[StudentQuizzesTab] Button clicked for quizId: ${quizId}, event:`, e);
+    const handleClick = (quizId) => {
         if (handleStartQuiz && typeof handleStartQuiz === 'function') {
             handleStartQuiz(quizId);
-        } else {
-            console.error(`[StudentQuizzesTab] handleStartQuiz is not a function!`, handleStartQuiz);
         }
     };
     

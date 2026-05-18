@@ -13,6 +13,7 @@ import { LoadingPage } from "./components/common/Loading";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import AppLayout from "./components/layout/AppLayout";
 import { useDebouncedCallback } from "./hooks/useDebounce";
+import { AdminProvider } from "./contexts/AdminContext";
 
 // Regular imports (non-lazy)
 import LoginPage from "./pages/LoginPage.jsx";
@@ -266,7 +267,13 @@ function App() {
 
                     {/* Admin Routes */}
                     <Route element={<AppLayout />}>
-                        <Route path="/admin" element={<AdminLayout />}>
+                        <Route path="/admin" element={
+                            <AdminProvider>
+                                <Suspense fallback={<div className="min-h-screen" />}>
+                                    <AdminLayout />
+                                </Suspense>
+                            </AdminProvider>
+                        }>
                             <Route index element={<AdminOverview />} />
                             <Route path="users" element={<AdminUsers />} />
                             <Route path="analytics" element={<AdminAnalytics />} />

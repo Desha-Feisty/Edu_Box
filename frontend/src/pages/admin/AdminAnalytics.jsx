@@ -1,43 +1,93 @@
-import { useOutletContext } from "react-router-dom";
+import { useState, useEffect, useRef, Suspense } from "react";
+import axios from "axios";
+import useAuthStore from "../../stores/Authstore";
+import { useAdmin } from "../../contexts/AdminContext";
 import { Users, BookOpen, FileText, Target, TrendingUp, Award, Clock } from "lucide-react";
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    LineChart,
-    Line,
-    Cell
-} from "recharts";
+
+// Import chart components (wrapper is small, Recharts is lazy loaded internally)
+import { ActivityLineChart, ChartSkeleton } from "../../components/admin/AdminCharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 function AdminAnalytics() {
-    const context = useOutletContext() || {};
-    const { 
-        courseAnalytics = [], 
-        enhancedStats = null,
-        activityData = null,
-        teacherStats = []
-    } = context;
+    const { token } = useAuthStore();
+    
+    // Use shared context for enhancedStats (eliminates duplicate fetch)
+    const { enhancedStats: contextEnhancedStats } = useAdmin();
 
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            return (
-                <div className="bg-white dark:bg-base-200 px-4 py-3 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700">
-                    <p className="font-semibold text-slate-900 dark:text-white">{label}</p>
-                    {payload.map((entry, index) => (
-                        <p key={index} className="text-sm" style={{ color: entry.color }}>
-                            {entry.name}: {entry.value}
-                        </p>
-                    ))}
-                </div>
-            );
+    // Client-side cache using useRef
+    const cacheRef = useRef({
+        analytics: null,
+        activity: null,
+        teachers: null,
+        timestamp: 0
+    });
+    const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+    // State for fetched data - enhancedStats now comes from context
+    const [courseAnalytics, setCourseAnalytics] = useState([]);
+    const [activityData, setActivityData] = useState(null);
+    const [teacherStats, setTeacherStats] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [cacheVersion, setCacheVersion] = useState(0); // Must be before refetch function
+    
+    // Use enhancedStats from context (shared, no duplicate fetch)
+    const enhancedStats = contextEnhancedStats;
+
+    // Fetch data with client-side caching
+    useEffect(() => {
+        if (!token) return;
+
+        const now = Date.now();
+        const cache = cacheRef.current;
+        
+        // Check if cache is valid (less than 5 minutes old)
+        const isCacheValid = (now - cache.timestamp) < CACHE_TTL;
+
+        // Use cached data if available
+        if (isCacheValid && cache.analytics && cache.activity && cache.teachers) {
+            setCourseAnalytics(cache.analytics);
+            setActivityData(cache.activity);
+            setTeacherStats(cache.teachers);
+            setIsLoading(false);
+            return;
         }
-        return null;
+
+        // Fetch from API - enhancedStats now comes from context, only fetch remaining 3
+        setIsLoading(true);
+        Promise.all([
+            axios.get("/api/admin/analytics", { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get("/api/admin/activity?days=7", { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get("/api/admin/teachers", { headers: { Authorization: `Bearer ${token}` } })
+        ]).then(([analyticsRes, activityRes, teacherRes]) => {
+            const analyticsData = analyticsRes.data.courseAnalytics || [];
+            const activityResData = activityRes.data || null;
+            const teachersData = teacherRes.data.teachers || [];
+
+            // Update cache
+            cacheRef.current = {
+                analytics: analyticsData,
+                activity: activityResData,
+                teachers: teachersData,
+                timestamp: now
+            };
+
+            setCourseAnalytics(analyticsData);
+            setActivityData(activityResData);
+            setTeacherStats(teachersData);
+        }).finally(() => setIsLoading(false));
+    }, [token, cacheVersion]);
+
+    // Manual refetch - clears cache and re-fetches (fixes duplicate call bug)
+    const refetch = () => {
+        cacheRef.current = {
+            analytics: null,
+            activity: null,
+            teachers: null,
+            timestamp: 0
+        };
+        // Force useEffect to re-run by toggling a version state
+        setCacheVersion(v => v + 1);
     };
 
     // Prepare activity chart data
@@ -45,6 +95,14 @@ function AdminAnalytics() {
         date: new Date(item.date).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
         attempts: item.count
     })) || [];
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center py-20">
+                <span className="loading loading-spinner loading-lg text-blue-500" />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -93,31 +151,17 @@ function AdminAnalytics() {
                 </div>
             )}
 
-            {/* Activity Chart */}
+            {/* Activity Chart - Lazy loaded */}
             {activityChartData.length > 0 && (
                 <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-blue-500" />
                         Activity (Last 7 Days)
                     </h3>
-                    <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={activityChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                                <XAxis dataKey="date" stroke="#9CA3AF" fontSize={12} />
-                                <YAxis stroke="#9CA3AF" fontSize={12} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="attempts" 
-                                    name="Attempts"
-                                    stroke="#3B82F6" 
-                                    strokeWidth={3}
-                                    dot={{ fill: "#3B82F6", strokeWidth: 2, r: 4 }}
-                                    activeDot={{ r: 6 }}
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
+                    <div className="h-64 min-h-[256px]">
+                        <Suspense fallback={<ChartSkeleton height={256} />}>
+                            <ActivityLineChart data={activityChartData} dataKey="attempts" xKey="date" />
+                        </Suspense>
                     </div>
                     {activityData && (
                         <div className="mt-4 flex gap-6 text-sm">

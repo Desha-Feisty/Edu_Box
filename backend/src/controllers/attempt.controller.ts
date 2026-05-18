@@ -59,7 +59,6 @@ const selectRandomQuestions = (allQuestions: any[], count: number, seed: string)
 const startAttempt = async (req: AuthRequest, res: Response) => {
     try {
         const { quizId } = req.params;
-        console.log(`[startAttempt] Called with quizId: ${quizId}, user: ${req.user?._id}`);
         
         if (!quizId) {
             return res.status(400).json({ errMsg: "invalid quiz id" });

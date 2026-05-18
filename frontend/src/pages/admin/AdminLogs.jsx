@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useOutletContext } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { useAdmin } from "../../contexts/AdminContext";
 import { 
     Server,
     Clock,
@@ -20,6 +21,17 @@ import {
 function AdminLogs() {
     const context = useOutletContext() || {};
     const { token = "" } = context;
+    
+    // Use shared admin context for system health
+    const { systemHealth, loading: contextLoading } = useAdmin();
+
+    // Client-side cache
+    const cacheRef = useRef({
+        logs: null,
+        stats: null,
+        timestamp: 0
+    });
+    const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
 
     // Log state
     const [logs, setLogs] = useState([]);
@@ -32,8 +44,6 @@ function AdminLogs() {
     const [logStats, setLogStats] = useState(null);
     const [autoRefreshLogs, setAutoRefreshLogs] = useState(false);
     const [lastLogTimestamp, setLastLogTimestamp] = useState(null);
-    const [systemHealth, setSystemHealth] = useState(null);
-    const [healthLoading, setHealthLoading] = useState(false);
     const [logSearch, setLogSearch] = useState("");
     const [expandedLogId, setExpandedLogId] = useState(null);
 
@@ -75,23 +85,25 @@ function AdminLogs() {
     };
 
     const fetchLogStats = async () => {
+        // Check cache first
+        const now = Date.now();
+        const cache = cacheRef.current;
+        
+        if (cache.stats && (now - cache.timestamp) < CACHE_TTL) {
+            setLogStats(cache.stats);
+            return;
+        }
+
         try {
             const res = await axios.get("/api/admin/logs/stats?days=30", { headers: { Authorization: `Bearer ${token}` } });
+            cacheRef.current.stats = res.data;
+            cacheRef.current.timestamp = now;
             setLogStats(res.data);
         } catch { /* Silent */ }
     };
 
-    const fetchSystemHealth = async () => {
-        setHealthLoading(true);
-        try {
-            const res = await axios.get("/api/admin/system-health", { headers: { Authorization: `Bearer ${token}` } });
-            setSystemHealth(res.data);
-        } catch (err) {
-            toast.error("Failed to fetch system health");
-        } finally {
-            setHealthLoading(false);
-        }
-    };
+    // Use system health from context (shared, no duplicate fetch)
+    // This is now provided by AdminContext - no local fetch needed
 
     // Poll for new data
     const pollForNewLogs = useCallback(async () => {
@@ -154,11 +166,11 @@ function AdminLogs() {
         }
     };
 
-    // Initial fetch
+    // Initial fetch - systemHealth now comes from context
     useEffect(() => {
         fetchLogs();
         fetchLogStats();
-        fetchSystemHealth();
+        // systemHealth is now provided by AdminContext - no fetch needed
         (async () => {
             try {
                 const timestampRes = await axios.get("/api/admin/logs/latest", { headers: { Authorization: `Bearer ${token}` } });
@@ -167,15 +179,48 @@ function AdminLogs() {
         })();
     }, [token]);
 
-    // Auto-refresh
+    // Auto-refresh with Page Visibility API - only poll when tab is visible
     useEffect(() => {
         if (!autoRefreshRef.current) return;
 
-        const interval = setInterval(() => {
-            pollForNewLogs();
-        }, 5000);
+        let intervalId = null;
+        let isPageVisible = true;
 
-        return () => clearInterval(interval);
+        const startPolling = () => {
+            if (!isPageVisible) return;
+            intervalId = setInterval(() => {
+                pollForNewLogs();
+            }, 30000); // 30 seconds (increased from 5s for better performance)
+        };
+
+        const stopPolling = () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        };
+
+        // Handle page visibility - pause when tab not visible
+        const handleVisibilityChange = () => {
+            isPageVisible = !document.hidden;
+            if (isPageVisible) {
+                startPolling();
+                // Fetch immediately when tab becomes visible
+                pollForNewLogs();
+            } else {
+                stopPolling();
+            }
+        };
+
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+        
+        // Start polling
+        startPolling();
+
+        return () => {
+            stopPolling();
+            document.removeEventListener("visibilitychange", handleVisibilityChange);
+        };
     }, [autoRefreshLogs, pollForNewLogs]);
 
     return (
@@ -188,11 +233,11 @@ function AdminLogs() {
                             <Server className="w-5 h-5 text-blue-500" />
                             System Health
                         </h3>
-                        <button onClick={fetchSystemHealth} className="btn btn-ghost btn-sm btn-circle">
-                            <RefreshCw className={`w-4 h-4 ${healthLoading ? "animate-spin" : ""}`} />
+                        <button onClick={() => window.location.reload()} className="btn btn-ghost btn-sm btn-circle">
+                            <RefreshCw className="w-4 h-4" />
                         </button>
                     </div>
-                    {healthLoading ? (
+                    {contextLoading ? (
                         <div className="flex items-center justify-center py-8">
                             <span className="loading loading-spinner loading-md text-blue-500"></span>
                         </div>
@@ -371,8 +416,8 @@ function AdminLogs() {
                                 </tr>
                             ) : (
                                 logs.map((log) => (
-                                    <>
-                                        <tr key={log._id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+                                    <React.Fragment key={log._id}>
+                                        <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
                                             <td className="px-4 py-3">
                                                 <button
                                                     onClick={() => setExpandedLogId(expandedLogId === log._id ? null : log._id)}
@@ -423,7 +468,7 @@ function AdminLogs() {
                                             </td>
                                         </tr>
                                         {expandedLogId === log._id && (
-                                            <tr key={`${log._id}-expanded`}>
+                                            <tr>
                                                 <td colSpan="5" className="px-4 py-4 bg-slate-50 dark:bg-slate-800/50">
                                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                                         {log.metadata?.quizTitle && (
@@ -476,7 +521,7 @@ function AdminLogs() {
                                                 </td>
                                             </tr>
                                         )}
-                                    </>
+                                    </React.Fragment>
                                 ))
                             )}
                         </tbody>
