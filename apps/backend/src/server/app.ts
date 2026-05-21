@@ -99,7 +99,14 @@ app.use(limiter);
 
 // CORS configuration - environment-based
 const allowedOrigins = isProduction
-    ? (process.env.ALLOWED_ORIGINS?.split(",").map(s => s.trim()) || [])
+    ? [
+        "http://localhost",
+        "http://localhost:80",
+        "http://localhost:3000",
+        "http://frontend",
+        "http://backend:3000",
+        ...(process.env.ALLOWED_ORIGINS?.split(",").map(s => s.trim()) || []),
+    ]
     : [
         "http://localhost:5173",
         "http://localhost:3000",
@@ -130,8 +137,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(morgan("dev"));
 app.use(requestLogger);
 
-// Serve simple UI for testing endpoints
-app.use(express.static(path.join(__dirname, "..", "public")));
+// Serve simple UI for testing endpoints (only in dev/test)
+if (!isProduction) {
+    app.use(express.static(path.join(__dirname, "..", "public")));
+}
 app.use("/docs", express.static(path.join(__dirname, "..", "docs")));
 
 // Swagger documentation
@@ -182,6 +191,11 @@ app.delete(
     requireRole("teacher"),
     quizController.deleteQuestion,
 );
+
+// Health check endpoint (no auth required)
+app.get("/api/health", (req: Request, res: Response) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
 
 // Basic error handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import useAuthStore from "../../stores/Authstore";
 import useThemeStore from "../../stores/ThemeStore";
 import {

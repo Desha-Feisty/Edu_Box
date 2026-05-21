@@ -2,14 +2,14 @@
     "name": "ClassBox LMS",
     "short_name": "ClassBox",
     "description": "AI-powered Learning Management System",
-    "start_url": "/Edu_Box/",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#3b82f6",
     "orientation": "portrait-primary",
     "icons": [
         {
-            "src": "/Edu_Box/favicon.svg",
+            "src": "/favicon.svg",
             "sizes": "any",
             "type": "image/svg+xml",
             "purpose": "any maskable"

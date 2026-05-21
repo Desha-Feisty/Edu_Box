@@ -1,0 +1,56 @@
+# ============================================
+# EduBox Docker Compose
+# ============================================
+# Usage:
+#   docker compose up --build         # Build & start
+#   docker compose up -d              # Start detached
+#   docker compose down               # Stop & remove
+#   docker compose logs -f            # Follow logs
+# ============================================
+
+services:
+  # ============================================
+  # Backend API — Express + Socket.io
+  # ============================================
+  backend:
+    build:
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: edubox-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_LIFETIME=${JWT_LIFETIME}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_REFRESH_LIFETIME=${JWT_REFRESH_LIFETIME}
+      - UPSTASH_REDIS_REST_URL=${UPSTASH_REDIS_REST_URL}
+      - UPSTASH_REDIS_REST_TOKEN=${UPSTASH_REDIS_REST_TOKEN}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost,http://frontend}
+      - MONGODB_URI_FALLBACK=mongodb://host.docker.internal:27017/edubox
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ============================================
+  # Frontend — Nginx serving React SPA
+  # ============================================
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    container_name: edubox-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_started
+    restart: unless-stopped

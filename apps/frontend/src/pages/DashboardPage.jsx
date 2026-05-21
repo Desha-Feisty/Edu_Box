@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
+import { motion } from "framer-motion";
 import ProgressCard from "../components/dashboard/ProgressCard";
 import CourseCalendar from "../components/dashboard/CourseCalendar";
 import {

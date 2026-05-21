@@ -4,6 +4,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import { format, isToday, isTomorrow, isPast } from "date-fns";
+import { motion } from "framer-motion";
 import {
     Calendar as CalendarIcon,
     Clock,

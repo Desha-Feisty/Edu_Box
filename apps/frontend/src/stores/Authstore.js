@@ -40,7 +40,9 @@ const useAuthStore = create(
                         id: userData?.id || userData?._id?.toString(),
                     };
                     set({ user: loginUser });
-                    set({ token: response.data.data?.token || response.data.token });
+                    const token = response.data.data?.token || response.data.token;
+                    set({ token });
+                    localStorage.setItem("token", token);
                     set({ role: loginUser.role });
                     set({ isLoggingIn: false });
                     set({ errMsg: null });

@@ -3,6 +3,7 @@ import axios from "axios";
 import useAuthStore from "../../stores/Authstore";
 import useChatStore from "../../stores/ChatStore";
 import useThemeStore from "../../stores/ThemeStore";
+import { motion } from "framer-motion";
 import { X, MessageCircle, Star, TrendingUp, Clock, BookOpen, Mail } from "lucide-react";
 
 function StudentPopover({ student, onClose, onChatStarted }) {
