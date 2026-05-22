@@ -4,11 +4,42 @@ import Jwt, { type JwtPayload } from "jsonwebtoken";
 import Course from "../models/course.js";
 import Enrollment from "../models/enrollment.js";
 import ChatMessage from "../models/chat.js";
+import { notifyUser } from "./socket.js";
 
 interface SocketUser {
     _id: string;
     role: string;
 }
+
+// Simple in-memory rate limiter for socket events
+const socketRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+const checkSocketRateLimit = (userId: string, maxEvents: number = 10, windowMs: number = 1000): boolean => {
+    const now = Date.now();
+    const entry = socketRateLimits.get(userId);
+    
+    if (!entry || now > entry.resetAt) {
+        socketRateLimits.set(userId, { count: 1, resetAt: now + windowMs });
+        return true;
+    }
+    
+    if (entry.count >= maxEvents) {
+        return false; // Rate limited
+    }
+    
+    entry.count++;
+    return true;
+};
+
+// Cleanup stale rate limit entries periodically
+setInterval(() => {
+    const now = Date.now();
+    for (const [userId, entry] of socketRateLimits.entries()) {
+        if (now > entry.resetAt) {
+            socketRateLimits.delete(userId);
+        }
+    }
+}, 60000);
 
 function verifyToken(token: string): SocketUser {
     if (!process.env.JWT_SECRET) {
@@ -116,6 +147,11 @@ export function initializeChat(io: SocketIOServer) {
 
         socket.on("join-chat", async (payload) => {
             try {
+                // Rate limit: max 5 join-chat requests per 10 seconds per user
+                if (!checkSocketRateLimit(user._id, 5, 10000)) {
+                    socket.emit("socket-error", { message: "Too many join requests. Please slow down." });
+                    return;
+                }
                 const { courseId, peerId } = payload || {};
                 if (!courseId || !peerId) {
                     throw new Error("courseId and peerId are required");
@@ -134,10 +170,14 @@ export function initializeChat(io: SocketIOServer) {
                         { sender: peerId, recipient: user._id },
                     ],
                 })
-                    .sort({ createdAt: 1 })
+                    .sort({ createdAt: -1 })
+                    .limit(50)
                     .populate("sender", "name role")
                     .populate("recipient", "name role")
                     .lean();
+
+                // Reverse to chronological order for display
+                messages.reverse();
 
                 const normalizedMessages = messages.map((msg: any) => ({
                     ...msg,
@@ -161,6 +201,11 @@ export function initializeChat(io: SocketIOServer) {
 
         socket.on("send-chat-message", async (payload) => {
             try {
+                // Rate limit: max 10 messages per 2 seconds per user
+                if (!checkSocketRateLimit(`send:${user._id}`, 10, 2000)) {
+                    socket.emit("socket-error", { message: "Too many messages. Please slow down." });
+                    return;
+                }
                 const { courseId, recipientId, text } = payload || {};
                 if (!courseId || !recipientId || !text) {
                     throw new Error(
@@ -200,7 +245,6 @@ export function initializeChat(io: SocketIOServer) {
                 io.to(room).emit("chat-message", outMessage);
 
                 // Send individual notification for persistence and global alerts
-                const { notifyUser } = await import("./socket.js");
                 notifyUser(recipientId, "chat-message", outMessage);
             } catch (error) {
                 socket.emit("socket-error", {

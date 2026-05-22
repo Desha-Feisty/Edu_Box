@@ -1,5 +1,4 @@
 import Jwt, { type JwtPayload } from "jsonwebtoken";
-import User from "../models/user.js";
 import type { NextFunction, Response } from "express";
 import type { AuthRequest } from "../types/authRequest.js";
 import dotenv from "dotenv";
@@ -21,16 +20,13 @@ const authMiddleware = async (
             });
         }
         const payload = Jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
-        if (!payload || typeof payload === "string" || !payload._id) {
-            return res.status(500).json({ errMsg: "error verify user" });
+        if (!payload || typeof payload === "string" || !payload._id || !payload.role) {
+            return res.status(401).json({ errMsg: "unable to verify user" });
         }
-        const user = await User.findById(payload._id);
-        if (!user) {
-            return res.status(401).json({ errMsg: "user not found" });
-        }
+        // Use JWT payload directly — skip DB lookup for performance
         req.user = {
-            _id: user._id.toString(),
-            role: user.role,
+            _id: payload._id.toString(),
+            role: payload.role.toString(),
         };
         return next();
     } catch (error) {

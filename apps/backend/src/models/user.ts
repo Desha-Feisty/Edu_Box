@@ -29,7 +29,7 @@ const userSchema = new Schema<IUser, UserModel, UserMethods>(
             type: String,
             required: true,
             maxlength: 40,
-            minlength: 6,
+            minlength: 2,
         },
         email: {
             type: String,
@@ -39,7 +39,7 @@ const userSchema = new Schema<IUser, UserModel, UserMethods>(
         },
         password: {
             type: String,
-            minlength: 6,
+            minlength: 8,
             // Note: bcrypt hashes are 60 characters, so we don't set maxlength here
             // The hash is generated in the pre-save hook
         },
@@ -117,11 +117,10 @@ userSchema.methods.createRefreshToken = async function () {
         secret,
         { expiresIn: "7d" },
     );
-    // Store hash of refresh token
+    // Store hash of refresh token (caller must save)
     const salt = await bcrypt.genSalt(10);
     this.refreshToken = await bcrypt.hash(token, salt);
     this.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await this.save();
     return token;
 };
 
@@ -140,13 +139,13 @@ userSchema.methods.validateRefreshToken = async function (token: string): Promis
 userSchema.methods.clearRefreshToken = async function (): Promise<void> {
     this.refreshToken = undefined as unknown as string;
     this.refreshTokenExpires = undefined as unknown as Date;
-    await this.save();
+    // Caller must save after calling this
 };
 
 userSchema.methods.updateLoginStats = async function (): Promise<void> {
     this.lastLogin = new Date();
     this.loginCount = (this.loginCount || 0) + 1;
-    await this.save();
+    // Caller must save after calling this
 };
 
 export default model<IUser, UserModel>("User", userSchema);

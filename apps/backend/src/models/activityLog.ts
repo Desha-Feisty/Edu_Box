@@ -39,10 +39,11 @@ const activityLogSchema = new Schema<IActivityLog>({
     metadata: { type: Schema.Types.Mixed },
     ipAddress: { type: String },
     userAgent: { type: String },
-    createdAt: { type: Date, default: Date.now, index: true },
+    createdAt: { type: Date, default: Date.now },
 });
 
-activityLogSchema.index({ createdAt: -1 });
+// TTL index: auto-delete documents older than 30 days
+activityLogSchema.index({ createdAt: -1 }, { expireAfterSeconds: 30 * 24 * 60 * 60 });
 activityLogSchema.index({ action: 1, createdAt: -1 });
 activityLogSchema.index({ user: 1, createdAt: -1 });
 

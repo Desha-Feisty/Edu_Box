@@ -16,7 +16,7 @@ const getAllUsers = async (req: Request, res: Response) => {
         }
         return res.status(200).json({ num: users.length, users });
     } catch (error) {
-        return res.status(500).json({ errMsg: "An error has occured", error });
+        return res.status(500).json({ errMsg: "An error has occured" });
     }
 };
 const getUser = async (req: Request, res: Response) => {
@@ -31,7 +31,7 @@ const getUser = async (req: Request, res: Response) => {
         }
         return res.status(200).json({ user });
     } catch (error) {
-        return res.status(500).json({ errMsg: "An error has occured", error });
+        return res.status(500).json({ errMsg: "An error has occured" });
     }
 };
 const createUser = async (req: Request<{}, {}, RequestBody>, res: Response) => {
@@ -43,7 +43,7 @@ const createUser = async (req: Request<{}, {}, RequestBody>, res: Response) => {
         const user = await User.create({ name, email, password, role });
         return res.status(201).json({ user });
     } catch (error) {
-        return res.status(500).json({ errMsg: "An error has occured", error });
+        return res.status(500).json({ errMsg: "An error has occured" });
     }
 };
 const updateUser = async (req: Request, res: Response) => {
@@ -66,7 +66,7 @@ const updateUser = async (req: Request, res: Response) => {
         }
         return res.status(200).json({ user });
     } catch (error) {
-        return res.status(500).json({ errMsg: "An error has occured", error });
+        return res.status(500).json({ errMsg: "An error has occured" });
     }
 };
 const deleteUser = async (req: Request, res: Response) => {
@@ -81,6 +81,6 @@ const deleteUser = async (req: Request, res: Response) => {
         }
         return res.status(200).json({ msg: "user deleted successfully" });
     } catch (error) {
-        return res.status(500).json({ errMsg: "an error has occured", error });
+        return res.status(500).json({ errMsg: "An error has occured" });
     }
 };

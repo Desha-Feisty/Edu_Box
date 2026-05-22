@@ -17,44 +17,61 @@ const getCourseAnalytics = async (req: AuthRequest, res: Response) => {
             return res.status(403).json({ error: "Forbidden" });
         }
 
-        const quizzes = await Quiz.find({ course: courseId as any });
-        const quizIds = quizzes.map(q => (q as any)._id);
+        const quizzes = await Quiz.find({ course: courseId as any }).lean();
+        const quizIds = quizzes.map(q => q._id);
 
-        const enrollments = await Enrollment.countDocuments({ course: courseId as any, status: "active" });
+        const enrollmentCount = await Enrollment.countDocuments({ course: courseId as any, status: "active" });
 
-        // Aggregate stats per quiz
-        const quizStats = await Promise.all(quizzes.map(async (quiz) => {
-            const attempts = await Attempt.find({ 
-                quiz: (quiz as any)._id, 
-                status: { $in: ["graded", "late"] } 
+        // Use MongoDB aggregation to calculate per-quiz stats (avoids loading all attempts into memory)
+        const stats = await Attempt.aggregate([
+            { $match: { quiz: { $in: quizIds }, status: { $in: ["graded", "late"] } } },
+            {
+                $group: {
+                    _id: "$quiz",
+                    attemptCount: { $sum: 1 },
+                    avgPercentage: {
+                        $avg: {
+                            $cond: [
+                                { $gt: ["$maxScore", 0] },
+                                { $multiply: [{ $divide: ["$score", "$maxScore"] }, 100] },
+                                0,
+                            ],
+                        },
+                    },
+                },
+            },
+        ]);
+
+        // Build a map for O(1) lookup
+        const statsMap = new Map<string, { attemptCount: number; avgPercentage: number }>();
+        for (const s of stats) {
+            statsMap.set(s._id.toString(), {
+                attemptCount: s.attemptCount,
+                avgPercentage: Math.round(s.avgPercentage),
             });
+        }
 
-            // Calculate percentage per attempt and then average them
-            const avgScore = attempts.length > 0 
-                ? attempts.reduce((sum, a) => {
-                    const totalPointsPossible = a.maxScore || 1;
-                    const percentage = ( (a.score || 0) / totalPointsPossible ) * 100;
-                    return sum + percentage;
-                }, 0) / attempts.length 
-                : 0;
-
-            const participation = enrollments > 0 
-                ? (attempts.length / enrollments) * 100 
+        const quizStats = quizzes.map((quiz) => {
+            const s = statsMap.get(quiz._id.toString());
+            const attemptCount = s?.attemptCount ?? 0;
+            const avgScore = s?.avgPercentage ?? 0;
+            const participation = enrollmentCount > 0
+                ? Math.round((attemptCount / enrollmentCount) * 100)
                 : 0;
 
             return {
-                quizId: (quiz as any)._id,
+                quizId: quiz._id,
                 title: quiz.title,
-                avgScore: Math.round(avgScore),
-                participation: Math.round(participation),
-                attemptCount: attempts.length
+                avgScore,
+                participation,
+                attemptCount,
             };
-        }));
+        });
 
         return res.json({
             courseTitle: course.title,
-            studentCount: enrollments,
-            quizStats
+            studentCount: enrollmentCount,
+            quizStats,
         });
     } catch (err) {
         console.error("Course analytics error:", err);

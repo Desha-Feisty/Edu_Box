@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
 import { Toaster, toast } from "react-hot-toast";
 import useAuthStore, { setupAuthInterceptor } from "./stores/Authstore";
@@ -49,8 +49,6 @@ const TeacherQuizCreatePage = lazy(() => import("./pages/TeacherQuizCreatePage.j
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage.jsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
 
-const processedMessages = new Set();
-
 function SocketListener() {
     const token = useAuthStore((state) => state.token);
     const connect = useSocketStore((state) => state.connect);
@@ -59,6 +57,9 @@ function SocketListener() {
         (state) => state.fetchNotifications,
     );
     const listRecentChats = useTeacherStore((state) => state.listRecentChats);
+
+    // Track processed message IDs per component lifecycle (cleaned up on unmount)
+    const processedMessagesRef = useRef(new Set());
 
     // Debounce updates to avoid 429 errors during message bursts
     const debouncedFetchNotifications = useDebouncedCallback(fetchNotifications, 1000);
@@ -104,12 +105,13 @@ function SocketListener() {
                 msgId ||
                 `${message.text}-${typeof message.sender === "object" ? message.sender._id || message.sender.id : message.sender}`;
 
-            if (processedMessages.has(fallbackId)) return;
-            processedMessages.add(fallbackId);
+            const pm = processedMessagesRef.current;
+            if (pm.has(fallbackId)) return;
+            pm.add(fallbackId);
 
-            if (processedMessages.size > 100) {
-                const first = processedMessages.values().next().value;
-                processedMessages.delete(first);
+            if (pm.size > 100) {
+                const first = pm.values().next().value;
+                pm.delete(first);
             }
 
             debouncedFetchNotifications();

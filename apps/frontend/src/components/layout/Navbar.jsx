@@ -6,6 +6,7 @@ import useThemeStore from "../../stores/ThemeStore";
 import GlobalSearch from "../search/GlobalSearch";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { useDebounce } from "../../hooks/useDebounce";
 
 export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotifications }) {
     const { user, logout } = useAuthStore();
@@ -14,7 +15,8 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
     const { theme, toggleTheme } = useThemeStore();
     const isDark = theme === "night";
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const [searchQuery, setSearchQuery] = useState("");
+    const [searchInput, setSearchInput] = useState("");
+    const searchQuery = useDebounce(searchInput, 200);
     const searchRef = useRef(null);
 
     const disconnectSocket = useSocketStore((state) => state.disconnect);
@@ -143,9 +145,9 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
                         <input
                             ref={searchRef}
                             type="text"
-                            value={searchQuery}
+                            value={searchInput}
                             onChange={(e) => {
-                                setSearchQuery(e.target.value);
+                                setSearchInput(e.target.value);
                                 setIsSearchOpen(true);
                             }}
                             onFocus={() => setIsSearchOpen(true)}
@@ -304,10 +306,10 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
                 isOpen={isSearchOpen} 
                 onClose={() => {
                     setIsSearchOpen(false);
-                    setSearchQuery("");
+                    setSearchInput("");
                 }}
                 searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
+                setSearchQuery={setSearchInput}
                 triggerRef={searchRef}
             />
         </>

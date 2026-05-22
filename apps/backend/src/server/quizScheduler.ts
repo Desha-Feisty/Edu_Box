@@ -8,18 +8,7 @@ import { notifyUser } from "./socket.js";
 import { logActivity } from "../services/logger.js";
 import { SCHEDULER } from "../utils/constants.js";
 
-// Track processed quizzes to avoid duplicate notifications (in-memory, reset on server restart)
-const notifiedQuizzes = new Map<string, number>(); // quizId -> timestamp
-
-// Cleanup old entries periodically
-const cleanupNotifiedQuizzes = () => {
-    const cutoff = Date.now() - (SCHEDULER.NOTIFICATION_TTL_HOURS * 60 * 60 * 1000);
-    for (const [quizId, timestamp] of notifiedQuizzes.entries()) {
-        if (timestamp < cutoff) {
-            notifiedQuizzes.delete(quizId);
-        }
-    }
-};
+// Track processed quizzes via Quiz.closeNotifiedAt field (persisted across restarts)
 
 export function startQuizScheduler() {
     cron.schedule(SCHEDULER.CRON_INTERVAL, async () => {
@@ -27,27 +16,24 @@ export function startQuizScheduler() {
         let processedCount = 0;
         let notifiedCount = 0;
 
-        // Cleanup old notified entries periodically
-        if (notifiedQuizzes.size > 100) {
-            cleanupNotifiedQuizzes();
-        }
-
         // Phase 1: Auto-submit expired in-progress attempts
         // Only queries attempts that actually need work (naturally idempotent)
         const expiredAttempts = await Attempt.find({
             status: "inProgress",
             endAt: { $lte: now.toDate() },
-        }).populate("quiz").lean();
+        })
+            .limit(100)
+            .populate("quiz").lean();
 
         if (expiredAttempts.length === 0) {
             // Still check for closed quizzes notification
             const closedQuizzes = await Quiz.find({
                 closeAt: { $lte: now.toDate() },
                 gradingMode: "onClose",
-                _id: { $nin: Array.from(notifiedQuizzes.keys()) },
+                closeNotifiedAt: null,
             }).populate("course", "title").lean();
 
-            await processClosedQuizzes(closedQuizzes, notifiedQuizzes, now, (count) => { notifiedCount += count; });
+            await processClosedQuizzes(closedQuizzes, now, (count) => { notifiedCount += count; });
             return;
         }
 
@@ -89,16 +75,16 @@ export function startQuizScheduler() {
             }
 
             // Grade immediately (teacher sees grades now, students see after quiz closes)
-            await gradeSubmittedAttempt(attempt, wasLate);
+            const gradeResult = await gradeSubmittedAttempt(attempt, wasLate);
 
             // Log auto-submit activity
             try {
                 const enrollment = enrollmentMap.get(attempt.user?.toString());
                 const courseName = (enrollment as any)?.course?.title || "Unknown";
 
-                const score = attempt.score || 0;
-                const maxScore = attempt.maxScore || 0;
-                const percentage = maxScore > 0 ? Math.round((score / maxScore) * 100) : 0;
+                const score = gradeResult?.score ?? attempt.score ?? 0;
+                const maxScore = gradeResult?.maxScore ?? attempt.maxScore ?? 0;
+                const percentage = gradeResult?.percentage ?? (maxScore > 0 ? Math.round((score / maxScore) * 100) : 0);
 
                 await logActivity({
                     userId: attempt.user.toString(),
@@ -127,12 +113,12 @@ export function startQuizScheduler() {
         const closedQuizzes = await Quiz.find({
             closeAt: { $lte: now.toDate() },
             gradingMode: "onClose",
-            _id: { $nin: Array.from(notifiedQuizzes.keys()) },
+            closeNotifiedAt: null,
         })
             .populate("course", "title")
             .lean();
 
-        await processClosedQuizzes(closedQuizzes, notifiedQuizzes, now, (count) => { notifiedCount += count; });
+        await processClosedQuizzes(closedQuizzes, now, (count) => { notifiedCount += count; });
     });
 
     console.log("Quiz scheduler started");
@@ -141,7 +127,6 @@ export function startQuizScheduler() {
 // Helper function to process closed quizzes
 async function processClosedQuizzes(
     closedQuizzes: any[],
-    notifiedQuizzes: Map<string, number>,
     now: dayjs.Dayjs,
     incrementNotified: (count: number) => void
 ) {
@@ -149,8 +134,8 @@ async function processClosedQuizzes(
         const quizId = quiz._id.toString();
         const courseTitle = (quiz.course as any)?.title || "a course";
 
-        // Mark as notified with timestamp
-        notifiedQuizzes.set(quizId, Date.now());
+        // Persistently mark as notified (survives restarts)
+        await Quiz.findByIdAndUpdate(quizId, { closeNotifiedAt: now.toDate() });
 
         // Get all graded attempts for this quiz
         const attempts = await Attempt.find({

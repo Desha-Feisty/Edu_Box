@@ -27,8 +27,8 @@ export interface LoginBody {
 }
 
 const registerSchema = joi.object({
-    name: joi.string().min(6).max(40).required(),
-    password: joi.string().min(6).max(20).required(),
+    name: joi.string().min(2).max(40).required(),
+    password: joi.string().min(8).max(20).required(),
     email: joi.string().email().required(),
     role: joi.string().valid("student", "teacher", "admin").required(),
 });
@@ -67,8 +67,9 @@ const register = async (req: Request<{}, {}, RegisterBody>, res: Response) => {
         const token = await user.createToken();
         const refreshToken = await user.createRefreshToken();
 
-        // Update login stats
+        // Update login stats (single save for refreshToken + loginStats)
         await user.updateLoginStats();
+        await user.save();
 
         // Log activity
         try {
@@ -104,7 +105,9 @@ const register = async (req: Request<{}, {}, RegisterBody>, res: Response) => {
 
 const login = async (req: Request<{}, {}, LoginBody>, res: Response) => {
     try {
-        const { value, error } = loginSchema.validate(req.body);
+        const { value, error } = loginSchema.validate(req.body, {
+            stripUnknown: true,
+        });
         if (error) {
             return sendValidationError(res, "Invalid request format");
         }
@@ -127,8 +130,9 @@ const login = async (req: Request<{}, {}, LoginBody>, res: Response) => {
         const token = await user.createToken();
         const refreshToken = await user.createRefreshToken();
 
-        // Update login stats
+        // Update login stats (single save for refreshToken + loginStats)
         await user.updateLoginStats();
+        await user.save();
 
         // Log activity
         try {
@@ -199,6 +203,7 @@ const logout = async (req: AuthRequest, res: Response) => {
             const user = await User.findById(userId);
             if (user) {
                 await user.clearRefreshToken();
+                await user.save(); // Persist cleared refresh token
             }
         }
 

@@ -168,8 +168,6 @@ const listMyCourses = async (req: AuthRequest, res: Response) => {
 const listAllCourses = async (req: Request, res: Response) => {
     try {
         const courses = await Course.find({}).select("-joinCode").lean();
-        if (courses.length === 0)
-            return res.status(404).json({ errMsg: "no courses found!" });
         return res.status(200).json({ numCourses: courses.length, courses });
     } catch (error) {
         console.error("Error listing courses", error);

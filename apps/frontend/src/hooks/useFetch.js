@@ -5,11 +5,14 @@ import api from "../lib/api";
  * Custom hook for fetching data with loading, error, and caching support
  * Uses configured api instance with proper auth interceptors
  */
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes default TTL
+
 export function useFetch(url, options = {}) {
     const {
         immediate = true,
         deps = [],
         cache = true,
+        cacheTtl = CACHE_TTL,
         onSuccess,
         onError,
     } = options;
@@ -19,14 +22,23 @@ export function useFetch(url, options = {}) {
     const [error, setError] = useState(null);
     const cacheRef = useRef(new Map());
 
+    const isCacheValid = (entry) => {
+        return Date.now() - entry.timestamp < cacheTtl;
+    };
+
     const fetch = useCallback(async (fetchUrl = url) => {
         if (!fetchUrl) return;
 
         // Check cache
         if (cache && cacheRef.current.has(fetchUrl)) {
-            setData(cacheRef.current.get(fetchUrl));
-            setLoading(false);
-            return;
+            const entry = cacheRef.current.get(fetchUrl);
+            if (isCacheValid(entry)) {
+                setData(entry.data);
+                setLoading(false);
+                return;
+            }
+            // Expired — remove and refetch
+            cacheRef.current.delete(fetchUrl);
         }
 
         setLoading(true);
@@ -37,7 +49,7 @@ export function useFetch(url, options = {}) {
             const result = response.data;
 
             if (cache) {
-                cacheRef.current.set(fetchUrl, result);
+                cacheRef.current.set(fetchUrl, { data: result, timestamp: Date.now() });
             }
 
             setData(result);

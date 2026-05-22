@@ -41,8 +41,10 @@ const useAuthStore = create(
                     };
                     set({ user: loginUser });
                     const token = response.data.data?.token || response.data.token;
+                    const refreshToken = response.data.data?.refreshToken || response.data.refreshToken;
                     set({ token });
-                    localStorage.setItem("token", token);
+                    localStorage.setItem("token", token); // api.js interceptor reads this key
+                    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
                     set({ role: loginUser.role });
                     set({ isLoggingIn: false });
                     set({ errMsg: null });
@@ -117,13 +119,10 @@ const useAuthStore = create(
             },
             listEnrolledCalendarEvents: async (courseIds) => {
                 try {
-                    const allEvents = [];
-                    for (const courseId of courseIds) {
-                        const events = await get().listCourseCalendarEvents(courseId);
-                        if (events && events.length > 0) {
-                            allEvents.push(...events);
-                        }
-                    }
+                    const eventsList = await Promise.all(
+                        courseIds.map((id) => get().listCourseCalendarEvents(id))
+                    );
+                    const allEvents = eventsList.flat().filter(Boolean);
                     set({ calendarEvents: allEvents });
                     return allEvents;
                 } catch (error) {
@@ -164,13 +163,10 @@ useAuthStore.listCourseCalendarEvents = async (courseId) => {
 };
 useAuthStore.listEnrolledCalendarEvents = async (courseIds) => {
     try {
-        const allEvents = [];
-        for (const courseId of courseIds) {
-            const events = await useAuthStore.listCourseCalendarEvents(courseId);
-            if (events && events.length > 0) {
-                allEvents.push(...events);
-            }
-        }
+        const eventsList = await Promise.all(
+            courseIds.map((id) => useAuthStore.listCourseCalendarEvents(id))
+        );
+        const allEvents = eventsList.flat().filter(Boolean);
         useAuthStore.setState({ calendarEvents: allEvents });
         return allEvents;
     } catch (error) {
@@ -179,9 +175,10 @@ useAuthStore.listEnrolledCalendarEvents = async (courseIds) => {
     }
 };
 
+let interceptorSetup = false;
+
 // Setup function for axios interceptor (called from App.jsx)
 export const setupAuthInterceptor = () => {
-    let interceptorSetup = false;
     if (typeof window !== "undefined" && !interceptorSetup) {
         interceptorSetup = true;
         axios.interceptors.response.use(

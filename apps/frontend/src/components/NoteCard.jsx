@@ -1,11 +1,42 @@
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, ArrowRight, User } from "lucide-react";
+import { useRef, useCallback } from "react";
 
 export default function NoteCard({ note, isTeacher }) {
     const navigate = useNavigate();
+    const cardRef = useRef(null);
 
     const handleViewDetails = () => {
         navigate(`/note/${note._id}`);
+    };
+
+    const handleRipple = useCallback((e) => {
+        const card = cardRef.current;
+        if (!card) return;
+
+        const rect = card.getBoundingClientRect();
+        const ripple = document.createElement("span");
+        const size = Math.max(rect.width, rect.height);
+
+        ripple.style.cssText = `
+            position: absolute;
+            top: ${e.clientY - rect.top - size / 2}px;
+            left: ${e.clientX - rect.left - size / 2}px;
+            width: ${size}px;
+            height: ${size}px;
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.15);
+            transform: scale(0);
+            animation: note-ripple 0.6s ease-out forwards;
+            pointer-events: none;
+        `;
+        card.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+    }, []);
+
+    const handleClick = (e) => {
+        handleRipple(e);
+        handleViewDetails();
     };
 
     const createdDate = new Date(note.createdAt).toLocaleDateString("en-GB", {
@@ -15,8 +46,12 @@ export default function NoteCard({ note, isTeacher }) {
     });
 
     return (
-        <div className="glass-card group cursor-pointer overflow-hidden">
-            <div className="card-body p-5" onClick={handleViewDetails}>
+        <div
+            ref={cardRef}
+            className="glass-card group cursor-pointer overflow-hidden relative"
+            onClick={handleClick}
+        >
+            <div className="card-body p-5">
                 <div className="flex items-start justify-between mb-3">
                     <h4 className="card-title text-base text-slate-900 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition line-clamp-2">
                         {note.title}

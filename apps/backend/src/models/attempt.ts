@@ -2,7 +2,7 @@ import { Schema, model, Types, Document } from "mongoose";
 import type { IQuiz } from "./quiz.js";
 export interface IResponse {
     question: Types.ObjectId;
-    selectedChoiceIds: [Types.ObjectId];
+    selectedChoiceIds: Types.ObjectId[];
     textAnswer?: string;
     aiScore?: number;
     aiFeedback?: string;

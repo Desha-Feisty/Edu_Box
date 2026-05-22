@@ -45,6 +45,8 @@ router.post(
 
             const isValid = await user.validateRefreshToken(refreshToken);
             if (!isValid) {
+                // Persist the cleared refresh token state
+                await user.save();
                 return sendUnauthorized(res, "Invalid or expired refresh token");
             }
 
@@ -53,6 +55,7 @@ router.post(
 
             // Optionally rotate refresh token
             const newRefreshToken = await user.createRefreshToken();
+            await user.save(); // Persist refresh token rotation
 
             return sendSuccess(res, {
                 token: accessToken,
@@ -61,27 +64,6 @@ router.post(
         } catch (error) {
             console.error("Refresh token error:", error);
             return sendError(res, "Failed to refresh token", 500);
-        }
-    },
-);
-
-// POST /api/auth/logout - Logout and clear refresh token
-router.post(
-    "/logout",
-    authMiddleware,
-    async (req, res) => {
-        try {
-            const userId = (req as any).user?._id;
-            if (userId) {
-                const user = await User.findById(userId);
-                if (user) {
-                    await user.clearRefreshToken();
-                }
-            }
-            return sendSuccess(res, null, "Logged out successfully");
-        } catch (error) {
-            console.error("Logout error:", error);
-            return sendError(res, "Failed to logout", 500);
         }
     },
 );

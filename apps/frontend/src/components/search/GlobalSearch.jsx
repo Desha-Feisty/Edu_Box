@@ -50,7 +50,7 @@ function GlobalSearch({ isOpen, onClose, searchQuery, setSearchQuery, triggerRef
     // Debounced search
      
     useEffect(() => {
-        if (!query.trim() || !isOpen) {
+        if (!query.trim() || query.trim().length < 2 || !isOpen) {
             setResults({ courses: [], notes: [], quizzes: [], users: [], tickets: [], students: [] });
             return;
         }

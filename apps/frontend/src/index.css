@@ -315,3 +315,11 @@
 .dark .fc .fc-daygrid-day:hover {
     @apply bg-[--color-md-surface-container-dark];
 }
+
+/* Note card ripple effect */
+@keyframes note-ripple {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}

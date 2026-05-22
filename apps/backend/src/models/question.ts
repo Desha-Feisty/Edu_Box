@@ -23,7 +23,7 @@ export interface IQuestion {
     prompt: string;
     points: number;
     orderIndex: number;
-    choices: [IChoice];
+    choices: IChoice[];
     sampleAnswer?: string;
     rubric?: string;
 }

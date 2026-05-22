@@ -10,6 +10,11 @@ import { Types } from "mongoose";
 
 const router = Router();
 
+// Escape regex special characters to prevent ReDoS and NoSQL injection
+const escapeRegex = (str: string): string => {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
+
 // Search endpoint - searches courses, notes, quizzes, users (admin), tickets (admin)
 router.get("/", async (req: AuthRequest, res) => {
     try {
@@ -19,7 +24,7 @@ router.get("/", async (req: AuthRequest, res) => {
             return res.status(400).json({ errMsg: "Search query must be at least 2 characters" });
         }
 
-        const query = q.trim();
+        const query = escapeRegex(q.trim());
         const userId = req.user?._id;
         const role = req.user?.role;
 

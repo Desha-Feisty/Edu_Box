@@ -56,6 +56,7 @@ const requestTimeout = (timeoutMs: number = 30000) => {
     };
 };
 import { requestLogger } from "../middleware/requestLogger.js";
+import { errorHandler } from "../middleware/errorHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -100,11 +101,6 @@ app.use(limiter);
 // CORS configuration - environment-based
 const allowedOrigins = isProduction
     ? [
-        "http://localhost",
-        "http://localhost:80",
-        "http://localhost:3000",
-        "http://frontend",
-        "http://backend:3000",
         ...(process.env.ALLOWED_ORIGINS?.split(",").map(s => s.trim()) || []),
     ]
     : [
@@ -133,7 +129,13 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
-app.use(express.json({ limit: '10mb' }));
+// Global body size limit — 1MB handles 99% of requests
+// Routes that need larger payloads (e.g., AI generation, notes) apply their own limit
+app.use(express.json({ limit: '1mb' }));
+
+// Larger body limit for specific payload-heavy routes
+app.use("/api/quizzes/:quizId/questions/generate-ai", express.json({ limit: '5mb' }));
+app.use("/api/notes", express.json({ limit: '5mb' }));
 app.use(morgan("dev"));
 app.use(requestLogger);
 
@@ -197,12 +199,7 @@ app.get("/api/health", (req: Request, res: Response) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
-// Basic error handler
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error(err);
-    res.status(err.status || 500).json({
-        error: err.message || "Internal Server Error",
-    });
-});
+// Centralized error handler - handles Mongoose, JWT, and operational errors
+app.use(errorHandler);
 
 export default app;

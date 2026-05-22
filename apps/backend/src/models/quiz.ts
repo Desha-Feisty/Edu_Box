@@ -12,9 +12,13 @@ export interface IQuiz {
     questionsPerAttempt?: number;
     published?: boolean;
     gradingMode?: "onSubmit" | "onClose";
+    closeNotifiedAt?: Date | null;
+    createdAt?: Date;
+    updatedAt?: Date;
 }
 
-const quizSchema = new Schema<IQuiz>({
+const quizSchema = new Schema<IQuiz>(
+    {
     course: { type: Types.ObjectId, ref: "Course", required: true, index: true },
     title: { type: String, required: true, index: true },
     description: { type: String },
@@ -25,7 +29,10 @@ const quizSchema = new Schema<IQuiz>({
     questionsPerAttempt: { type: Number },
     published: { type: Boolean, default: false, index: true },
     gradingMode: { type: String, enum: ["onSubmit", "onClose"], default: "onSubmit" },
-});
+    closeNotifiedAt: { type: Date, default: null },
+},
+    { timestamps: true },
+);
 
 // Compound indexes for common queries
 quizSchema.index({ course: 1, published: 1 });

@@ -1,10 +1,12 @@
-import { Zap, Clock, BookMarked, CheckCircle } from "lucide-react";
+import { Zap, Clock, BookMarked, CheckCircle, Calendar, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function StudentQuizzesTab({
     availableQuizzes,
     startingQuizId,
     handleStartQuiz
 }) {
+    const navigate = useNavigate();
     const handleClick = (quizId) => {
         if (handleStartQuiz && typeof handleStartQuiz === 'function') {
             handleStartQuiz(quizId);
@@ -14,12 +16,25 @@ export default function StudentQuizzesTab({
     return (
         <div>
             {availableQuizzes.length === 0 ? (
-                <div className="card bg-yellow-50 border border-yellow-200 border-dashed">
-                    <div className="card-body text-center py-12">
-                        <Zap className="w-16 h-16 text-yellow-300 mx-auto mb-4" />
-                        <p className="text-gray-600">
-                            No quizzes currently available to take.
-                        </p>
+                <div className="flex flex-col items-center justify-center py-16 px-4">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 flex items-center justify-center mb-6 shadow-inner">
+                        <Sparkles className="w-10 h-10 text-violet-500 dark:text-violet-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
+                        No Quizzes Available
+                    </h3>
+                    <p className="text-slate-500 dark:text-slate-400 text-center max-w-sm mb-8">
+                        There are no quizzes available to take right now. 
+                        Check back later or explore your courses for upcoming quizzes.
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={() => navigate("/student/courses")}
+                            className="btn btn-outline gap-2 rounded-xl border-slate-300 dark:border-slate-600"
+                        >
+                            <Calendar className="w-4 h-4" />
+                            Browse Courses
+                        </button>
                     </div>
                 </div>
             ) : (

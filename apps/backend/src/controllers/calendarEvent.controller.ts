@@ -115,8 +115,20 @@ const listCourseCalendarEvents = async (req: AuthRequest, res: Response) => {
             ? course.teacher.toString()
             : (course.teacher as any)._id?.toString() || course.teacher.toString();
 
-        if (!req.user?._id || teacherId !== req.user._id.toString()) {
-            return res.status(403).json({ errMsg: "forbidden - you do not own this course" });
+        if (!req.user?._id) {
+            return res.status(401).json({ errMsg: "unauthenticated" });
+        }
+
+        // Allow teacher or enrolled student to view events
+        const isTeacher = teacherId === req.user._id.toString();
+        const isEnrolled = await Enrollment.exists({
+            user: req.user._id,
+            course: courseId,
+            status: "active",
+        });
+
+        if (!isTeacher && !isEnrolled) {
+            return res.status(403).json({ errMsg: "forbidden - you are not enrolled in this course" });
         }
 
         // Fetch calendar events for the course

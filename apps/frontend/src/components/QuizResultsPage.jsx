@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import useQuizStore from "../stores/Quizstore";
 import useAuthStore from "../stores/Authstore";
@@ -23,6 +23,8 @@ function QuizResultsPage() {
     const [attempt, setAttempt] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [animatedScore, setAnimatedScore] = useState(0);
+    const scoreRef = useRef(null);
 
     useEffect(() => {
         const fetchAttempt = async () => {
@@ -56,6 +58,29 @@ function QuizResultsPage() {
 
         fetchAttempt();
     }, [attemptId, currentAttempt, token]);
+
+    // Animated score counter
+    useEffect(() => {
+        if (!attempt || loading) return;
+
+        const target = scorePercentage;
+        const duration = 1200;
+        const startTime = performance.now();
+
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setAnimatedScore(Math.round(eased * target));
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }, [attempt, loading]);
 
     if (loading) {
         return (
@@ -233,9 +258,10 @@ function QuizResultsPage() {
                         {/* Score Display */}
                         <div className="my-8">
                             <div
-                                className={`text-7xl font-black ${performance.color} mb-2`}
+                                ref={scoreRef}
+                                className={`text-7xl font-black ${performance.color} mb-2 transition-all duration-300`}
                             >
-                                {scorePercentage}%
+                                {animatedScore}%
                             </div>
                             <div className="text-2xl font-semibold text-gray-800">
                                 {totalPointsPossible > 0

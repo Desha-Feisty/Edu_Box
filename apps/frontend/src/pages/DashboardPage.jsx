@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
@@ -60,34 +61,39 @@ function DashboardPage() {
                 promises.push(fetchAvailableQuizzes(), listMyGrades());
             }
             
-            // Teacher-only: fetch recent submissions
+            // Teacher-only: fetch recent submissions in parallel
             if (role === "teacher") {
-                const axios = (await import("axios")).default;
-                try {
-                    const subRes = await axios.get("/api/attempts/recent/teacher", {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                    setRecentSubmissions(subRes.data.submissions || []);
-                    setTotalSubmissions(subRes.data.totalCount || 0);
-                } catch { /* Silent */ }
+                promises.push(
+                    (async () => {
+                        try {
+                            const subRes = await axios.get("/api/attempts/recent/teacher", {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            setRecentSubmissions(subRes.data.submissions || []);
+                            setTotalSubmissions(subRes.data.totalCount || 0);
+                        } catch { /* Silent */ }
+                    })()
+                );
             }
             
             await Promise.all(promises);
+            
+            // Fetch calendar events for students after courses load
+            if (role === "student") {
+                const courses = useTeacherStore.getState().allCourses;
+                if (courses.length > 0) {
+                    const courseIds = courses.map((c) => c._id || c.id).filter(Boolean);
+                    if (courseIds.length > 0) {
+                        await listEnrolledCalendarEvents(courseIds);
+                    }
+                }
+            }
+            
             setIsLoading(false);
         };
         
         loadData();
-    }, [token, role, navigate, listMyCourses, fetchAvailableQuizzes, listMyGrades]);
-
-    // Fetch calendar events for students
-    useEffect(() => {
-        if (role === "student" && allCourses.length > 0) {
-            const courseIds = allCourses.map((c) => c._id || c.id).filter(Boolean);
-            if (courseIds.length > 0) {
-                listEnrolledCalendarEvents(courseIds);
-            }
-        }
-    }, [role, allCourses, listEnrolledCalendarEvents]);
+    }, [token, role, navigate, listMyCourses, fetchAvailableQuizzes, listMyGrades, listEnrolledCalendarEvents]);
 
      
     useEffect(() => {

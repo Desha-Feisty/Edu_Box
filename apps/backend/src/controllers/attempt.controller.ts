@@ -365,24 +365,26 @@ const submitAttempt = async (req: AuthRequest, res: Response) => {
     }
 };
 
-// Helper function to grade an attempt (exported for quiz scheduler)
-export const gradeSubmittedAttempt = async (attempt: any, wasLate = false) => {
-    await attempt.populate({
-        path: "responses.question",
-        model: "Question",
-    });
-    let total = 0;
-    let maxScore = 0;
-    
-    for (const resp of attempt.responses) {
-        const q = resp.question as any;
-        
-        // Handle written questions with AI grading
-        if (q.questionType === "written") {
-            const maxPoints = q.points || 1;
-            maxScore += maxPoints;
-            
-            // Only grade if there's a text answer
+// Grade written responses in the background — prevents AI calls from blocking HTTP responses
+// This is scheduled via setImmediate after MCQ grading completes
+async function gradeWrittenResponsesAsync(attemptId: string): Promise<void> {
+    try {
+        const attempt = await Attempt.findById(attemptId).populate({
+            path: "responses.question",
+            model: "Question",
+        });
+        if (!attempt || attempt.status === "graded") return;
+
+        let total = attempt.score || 0;
+        const existingMax = attempt.maxScore || 0;
+
+        for (const resp of attempt.responses) {
+            const q = resp.question as any;
+            if (q.questionType !== "written") continue;
+
+            // Skip if already graded by a concurrent process
+            if (resp.aiScore !== undefined && resp.aiScore !== null) continue;
+
             if (resp.textAnswer && resp.textAnswer.trim()) {
                 try {
                     const gradingResult = await gradeWrittenAnswer({
@@ -390,9 +392,9 @@ export const gradeSubmittedAttempt = async (attempt: any, wasLate = false) => {
                         studentAnswer: resp.textAnswer,
                         sampleAnswer: q.sampleAnswer,
                         rubric: q.rubric,
-                        maxPoints: maxPoints,
+                        maxPoints: q.points || 1,
                     });
-                    
+
                     resp.aiScore = gradingResult.score;
                     resp.aiFeedback = gradingResult.feedback;
                     resp.pointsAwarded = gradingResult.score;
@@ -401,22 +403,82 @@ export const gradeSubmittedAttempt = async (attempt: any, wasLate = false) => {
                     console.error("AI grading failed for question:", q._id, error);
                     resp.pointsAwarded = 0;
                     resp.aiFeedback = "AI grading failed. Please contact your teacher.";
-                    total += 0;
                 }
             } else {
-                // No answer provided
                 resp.pointsAwarded = 0;
                 resp.aiScore = 0;
                 resp.aiFeedback = "No answer provided.";
-                total += 0;
             }
+        }
+
+        attempt.score = total;
+        attempt.maxScore = existingMax;
+        attempt.status = "graded";
+        await attempt.save();
+    } catch (error) {
+        console.error("Background AI grading failed for attempt:", attemptId, error);
+    }
+}
+
+// Helper function to grade an attempt (exported for quiz scheduler)
+// Always fetches the attempt fresh by ID to handle both Mongoose docs and lean objects
+// Returns { score, maxScore, percentage } for caller logging
+export const gradeSubmittedAttempt = async (attemptInput: any, wasLate = false): Promise<{ score: number; maxScore: number; percentage: number } | void> => {
+    const attemptId = attemptInput._id?.toString();
+    if (!attemptId) {
+        console.error("gradeSubmittedAttempt called without _id");
+        return;
+    }
+
+    // Fetch fresh document so we always have proper Mongoose methods
+    const attempt = await Attempt.findById(attemptId).populate({
+        path: "responses.question",
+        model: "Question",
+    });
+    if (!attempt) {
+        console.error(`Attempt ${attemptId} not found for grading`);
+        return;
+    }
+
+    // Idempotency: skip if already fully graded
+    if (attempt.status === "graded") return;
+
+    let mcqTotal = 0;
+    let maxScore = 0;
+    const hasWrittenQuestions = attempt.responses.some(
+        (r: any) => r.question?.questionType === "written"
+    );
+
+    for (const resp of attempt.responses) {
+        const q = resp.question as any;
+        if (!q) continue;
+
+        const points = q.points || 1;
+        maxScore += points;
+
+        if (q.questionType === "written") {
+            // If already has an AI score (e.g., from teacher override), use it
+            if (resp.aiScore !== undefined && resp.aiScore !== null) {
+                mcqTotal += resp.aiScore;
+                resp.pointsAwarded = resp.aiScore;
+                continue;
+            }
+
+            // No text answer — score 0 immediately
+            if (!resp.textAnswer?.trim()) {
+                resp.pointsAwarded = 0;
+                resp.aiScore = 0;
+                resp.aiFeedback = "No answer provided.";
+                continue;
+            }
+
+            // Has answer but not yet AI-graded — score 0 for now (will be updated async)
+            resp.pointsAwarded = 0;
             continue;
         }
-        
-        // Handle MCQ questions
+
+        // MCQ — grade synchronously (fast path)
         const choices = q.choices || [];
-        
-        // Find the correct choice
         const correctChoice = choices.find((c: any) => c.isCorrect);
         
         if (!correctChoice) {
@@ -425,26 +487,36 @@ export const gradeSubmittedAttempt = async (attempt: any, wasLate = false) => {
             continue;
         }
         
-        // Convert correct choice ID to string for comparison
         const correctChoiceId = correctChoice._id?.toString();
         const selectedIds = (resp.selectedChoiceIds || []).map((id: any) => 
             id instanceof Types.ObjectId ? id.toString() : String(id)
         );
         
-        // Check if exactly one correct choice is selected (compare as strings)
-        const isCorrect = 
-            selectedIds.length === 1 && 
-            selectedIds[0] === correctChoiceId;
-        
-        resp.pointsAwarded = isCorrect ? q.points || 1 : 0;
-        
-        total += resp.pointsAwarded;
-        maxScore += q.points || 1;
+        const isCorrect = selectedIds.length === 1 && selectedIds[0] === correctChoiceId;
+        resp.pointsAwarded = isCorrect ? points : 0;
+        mcqTotal += (resp.pointsAwarded || 0);
     }
-    attempt.score = total;
+
+    attempt.score = mcqTotal;
     attempt.maxScore = maxScore;
-    attempt.status = "graded";
+
+    if (!hasWrittenQuestions) {
+        // MCQ-only quiz — mark graded immediately
+        attempt.status = "graded";
+        await attempt.save();
+        return { score: attempt.score, maxScore: attempt.maxScore, percentage: maxScore > 0 ? Math.round((attempt.score / maxScore) * 100) : 0 };
+    }
+
+    // Has written questions — save partial score (MCQ only), defer AI grading to background
+    attempt.status = "submitted";
     await attempt.save();
+
+    const idForBg = attempt._id.toString();
+    setImmediate(() => {
+        gradeWrittenResponsesAsync(idForBg).catch((err) => {
+            console.error("Background written grading error for attempt", idForBg, err);
+        });
+    });
 };
 
 const getResult = async (req: AuthRequest, res: Response) => {

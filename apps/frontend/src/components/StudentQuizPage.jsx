@@ -269,8 +269,21 @@ function StudentQuizPage() {
 
     if (!currentAttempt || !attemptQuestions.length) {
         return (
-            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-                <span className="loading loading-spinner loading-lg text-blue-600"></span>
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-base-300 dark:to-base-200 p-6">
+                <div className="max-w-7xl mx-auto space-y-6 animate-pulse">
+                    {/* Header skeleton */}
+                    <div className="h-14 bg-slate-200 dark:bg-slate-700 rounded-2xl w-full" />
+                    {/* Question nav skeleton */}
+                    <div className="flex gap-3">
+                        {[1, 2, 3, 4, 5].map((i) => (
+                            <div key={i} className="h-12 w-12 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+                        ))}
+                    </div>
+                    {/* Question body skeleton */}
+                    <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded-xl w-3/4" />
+                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl w-full" />
+                    <div className="h-48 bg-slate-200 dark:bg-slate-700 rounded-2xl w-full" />
+                </div>
             </div>
         );
     }
