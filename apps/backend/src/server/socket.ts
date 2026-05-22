@@ -13,9 +13,6 @@ export const initSocket = (server: HttpServer) => {
         cors: {
             origin: isProduction
                 ? [
-                    "http://localhost",
-                    "http://frontend",
-                    "http://backend:3000",
                     ...(process.env.ALLOWED_ORIGINS?.split(",").map(s => s.trim()) || []),
                   ]
                 : [

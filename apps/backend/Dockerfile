@@ -64,6 +64,9 @@ COPY --from=builder /app/packages/shared ./packages/shared
 # No need to copy public/ or docs/ — those are development-only
 # (public serving is already gated behind !isProduction)
 
+# Set production environment
+ENV NODE_ENV=production
+
 # Switch to non-root user
 USER nodeuser
 

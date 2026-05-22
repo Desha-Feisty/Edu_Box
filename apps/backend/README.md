@@ -353,12 +353,45 @@ npm run start    # Run compiled JavaScript
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| MONGO_URI | MongoDB connection string | mongodb://localhost:27017/lms |
-| JWT_SECRET | Secret for JWT signing | - |
-| JWT_LIFETIME | Token expiration time | 1h |
-| PORT | Server port | 3000 |
+### Quick Start
+
+```bash
+# 1. Copy the example env file
+cp .env.example .env
+
+# 2. Generate strong JWT secrets
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# 3. Edit .env and paste the generated secrets into JWT_SECRET and JWT_REFRESH_SECRET
+
+# 4. (Optional) Add Gemini API key for AI-powered grading
+#    Get one at: https://aistudio.google.com/app/apikey
+```
+
+### Variable Reference
+
+| Variable | Required | Description | Default |
+|----------|----------|-------------|---------|
+| `PORT` | No | Server port | `3000` |
+| `MONGODB_URI` | Yes | MongoDB connection string (Atlas or local) | `mongodb://localhost:27017/edubox` |
+| `MONGODB_URI_FALLBACK` | No | Fallback MongoDB when primary is unavailable | `mongodb://localhost:27017/edubox` |
+| `JWT_SECRET` | Yes | Secret for signing access tokens (generate a strong random string) | — |
+| `JWT_REFRESH_SECRET` | Yes | Secret for signing refresh tokens (generate a strong random string) | — |
+| `JWT_LIFETIME` | No | Access token expiration duration | `1h` |
+| `JWT_REFRESH_LIFETIME` | No | Refresh token expiration duration | `7d` |
+| `GEMINI_API_KEY` | No | Google Gemini AI key for auto-grading written answers | — |
+| `UPSTASH_REDIS_REST_URL` | No | Upstash Redis URL for caching admin analytics | — |
+| `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis auth token | — |
+
+### Generating Secrets
+
+```bash
+# Generate a cryptographically strong 256-bit secret
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+
+# Or use OpenSSL
+openssl rand -base64 32
+```
 
 ## Logging
 

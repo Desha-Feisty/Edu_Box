@@ -40,15 +40,24 @@ RUN npm run build
 # ============================================
 FROM nginx:alpine
 
-# Remove default nginx config
-RUN rm -f /etc/nginx/conf.d/default.conf
+# Remove default nginx configs
+RUN rm -f /etc/nginx/conf.d/default.conf /etc/nginx/nginx.conf
 
-# Copy custom nginx config
+# Copy custom nginx configs
+COPY nginx/nginx.conf /etc/nginx/nginx.conf
 COPY nginx/default.conf /etc/nginx/conf.d/default.conf
 
 # Copy built frontend assets
 COPY --from=builder /app/apps/frontend/dist /usr/share/nginx/html
 
-EXPOSE 80
+# Prepare writable directories for non-root nginx user
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid
+
+EXPOSE 8080
+
+USER nginx
 
 CMD ["nginx", "-g", "daemon off;"]
