@@ -12,7 +12,7 @@ COPY apps/frontend/package.json apps/frontend/
 COPY packages/shared/package.json packages/shared/
 
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 # ============================================
 # Stage 2: Builder — compile frontend

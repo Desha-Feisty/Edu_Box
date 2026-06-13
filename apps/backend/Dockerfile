@@ -12,7 +12,7 @@ COPY apps/frontend/package.json apps/frontend/
 COPY packages/shared/package.json packages/shared/
 
 # Install ALL dependencies (including devDependencies for build)
-RUN npm ci
+RUN npm ci --no-audit --no-fund
 
 # ============================================
 # Stage 2: Builder — compile TypeScript
@@ -36,41 +36,44 @@ WORKDIR /app/apps/backend
 RUN npm run build
 
 # ============================================
-# Stage 3: Production — minimal runtime image
+# Stage 3: Production deps — install only production dependencies
 # ============================================
-FROM node:22-alpine AS production
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodegroup && \
-    adduser --system --uid 1001 nodeuser
+FROM node:22-alpine AS deps-prod
 
 WORKDIR /app
 
-# Copy production dependencies
+# Copy root lockfile + workspace manifests
 COPY package.json package-lock.json ./
 COPY apps/backend/package.json apps/backend/
 COPY packages/shared/package.json packages/shared/
 
-# Install ONLY production dependencies
-RUN npm ci --omit=dev && \
+# Install ONLY production dependencies, then clean up caches
+RUN npm ci --omit=dev --no-audit --no-fund && \
+    npm cache clean --force && \
     rm -f package-lock.json
 
+# ============================================
+# Stage 4: Production — minimal runtime image (distroless)
+# ============================================
+FROM gcr.io/distroless/nodejs22-debian12 AS production
+
+WORKDIR /app
+
+# Copy production node_modules (includes workspace symlinks)
+COPY --from=deps-prod --chown=65532:65532 /app/node_modules ./node_modules
+
 # Copy built backend output
-COPY --from=builder /app/apps/backend/dist ./apps/backend/dist
+COPY --from=builder --chown=65532:65532 /app/apps/backend/dist ./apps/backend/dist
 
-# Copy shared package source (it's used as source, not compiled)
-COPY --from=builder /app/packages/shared ./packages/shared
-
-# No need to copy public/ or docs/ — those are development-only
-# (public serving is already gated behind !isProduction)
+# Copy shared package source (symlink target from node_modules)
+COPY --from=builder --chown=65532:65532 /app/packages/shared ./packages/shared
 
 # Set production environment
 ENV NODE_ENV=production
 
-# Switch to non-root user
-USER nodeuser
-
 EXPOSE 3000
 
+USER 65532
+
 WORKDIR /app/apps/backend
-CMD ["node", "dist/server.js"]
+CMD ["dist/server.js"]
