@@ -53,6 +53,10 @@ function StudentQuizPage() {
     
     // Use a ref to track if we've initiated the fetch for this attemptId
     const fetchedAttemptId = useRef(null);
+    // Debounce timer ref for proper cleanup between rapid answer changes
+    const debounceTimer = useRef(null);
+    // Track in-flight save promises so we can flush before submission
+    const pendingSaves = useRef(new Map());
 
     useEffect(() => {
         // Skip if we've already fetched this attempt
@@ -119,6 +123,21 @@ function StudentQuizPage() {
         if (isSubmitting || isSubmitted) return;
         
         setIsSubmitting(true);
+
+        // Flush any pending debounced save before submission
+        if (debounceTimer.current) {
+            clearTimeout(debounceTimer.current);
+            debounceTimer.current = null;
+        }
+
+        // Wait for any in-flight saves to complete so no answers are lost
+        if (pendingSaves.current.size > 0) {
+            await Promise.allSettled(
+                Array.from(pendingSaves.current.values()),
+            );
+            pendingSaves.current.clear();
+        }
+
         try {
             const result = await submitAttempt(attemptId);
             if (result) {
@@ -176,56 +195,47 @@ function StudentQuizPage() {
     }, [currentAttempt?.endAt, showWarning, handleAutoSubmit, isSubmitting, isSubmitted]);
 
     const handleAnswerChange = useCallback(
-        async (questionId, choiceId, textAnswer) => {
-            // Handle written question text answer
-            if (textAnswer !== undefined) {
-                setAnswers((prev) => {
-                    return {
-                        ...prev,
-                        [questionId]: { textAnswer },
-                    };
-                });
-
-                setSavingIndices((prev) => new Set(prev).add(questionId));
-
-                const timeoutId = setTimeout(async () => {
-                    const success = await submitAnswer(attemptId, questionId, null, textAnswer);
-                    if (success) {
-                        toast.success("Answer saved");
-                    }
-                    setSavingIndices((prev) => {
-                        const newSet = new Set(prev);
-                        newSet.delete(questionId);
-                        return newSet;
-                    });
-                }, 500);
-
-                return () => clearTimeout(timeoutId);
+        (questionId, choiceId, textAnswer) => {
+            // Clear any pending debounce to avoid cascading stale saves
+            if (debounceTimer.current) {
+                clearTimeout(debounceTimer.current);
+                debounceTimer.current = null;
             }
 
-            // Handle MCQ choice answer
+            // Update optimistic UI immediately
             setAnswers((prev) => {
-                return {
-                    ...prev,
-                    [questionId]: [choiceId],
-                };
+                const value = textAnswer !== undefined
+                    ? { textAnswer }
+                    : [choiceId];
+                return { ...prev, [questionId]: value };
             });
 
             setSavingIndices((prev) => new Set(prev).add(questionId));
 
-            const timeoutId = setTimeout(async () => {
-                const success = await submitAnswer(attemptId, questionId, [choiceId], null);
+            // Debounced save with proper cleanup via ref
+            debounceTimer.current = setTimeout(async () => {
+                const savePromise = textAnswer !== undefined
+                    ? submitAnswer(attemptId, questionId, null, textAnswer)
+                    : submitAnswer(attemptId, questionId, [choiceId], null);
+
+                // Track promise so we can flush before submit
+                pendingSaves.current.set(questionId, savePromise);
+
+                const success = await savePromise;
+                pendingSaves.current.delete(questionId);
+
                 if (success) {
                     toast.success("Answer saved");
+                } else {
+                    toast.error("Failed to save answer");
                 }
+
                 setSavingIndices((prev) => {
                     const newSet = new Set(prev);
                     newSet.delete(questionId);
                     return newSet;
                 });
             }, 500);
-
-            return () => clearTimeout(timeoutId);
         },
         [attemptId, submitAnswer],
     );
@@ -454,8 +464,15 @@ function StudentQuizPage() {
                                             {!savingIndices.has(
                                                 selectedQuestion._id,
                                             ) &&
-                                                answers[selectedQuestion._id]
-                                                    ?.length > 0 && (
+                                                (() => {
+                                                    const answer = answers[selectedQuestion._id];
+                                                    if (!answer) return false;
+                                                    // MCQ: answer is an array of choice IDs
+                                                    // Written: answer is { textAnswer: "..." }
+                                                    return Array.isArray(answer)
+                                                        ? answer.length > 0
+                                                        : (answer.textAnswer?.trim()?.length > 0);
+                                                })() && (
                                                     <div className="flex items-center gap-2 text-success text-sm">
                                                         <CheckCircle className="w-4 h-4" />
                                                         <span>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import toast from "react-hot-toast";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
@@ -27,7 +28,7 @@ function DashboardPage() {
     const navigate = useNavigate();
     const { user, role, token, listEnrolledCalendarEvents, calendarEvents } = useAuthStore();
     const { allCourses, listMyCourses } = useTeacherStore();
-    const { availableQuizzes, myGrades, fetchAvailableQuizzes, listMyGrades } = useQuizStore();
+    const { availableQuizzes, myGrades, fetchAvailableQuizzes, listMyGrades, startAttempt, attemptError } = useQuizStore();
     
     // Role-based path prefix
     const rolePrefix = role === "teacher" ? "/teacher" : "/student";
@@ -43,6 +44,7 @@ function DashboardPage() {
     });
     const [recentSubmissions, setRecentSubmissions] = useState([]);
     const [totalSubmissions, setTotalSubmissions] = useState(0);
+    const [startingQuizId, setStartingQuizId] = useState(null);
 
     useEffect(() => {
         if (!token) {
@@ -123,6 +125,22 @@ function DashboardPage() {
             enrollmentCount: totalStudents,
         });
     }, [allCourses, availableQuizzes, myGrades, role, totalSubmissions]);
+
+    const handleStartQuiz = async (quizId) => {
+        setStartingQuizId(quizId);
+        try {
+            const result = await startAttempt(quizId);
+            if (result && result.attempt) {
+                navigate(`/student/quiz/${result.attempt._id}`);
+            } else {
+                toast.error(attemptError || "Failed to start quiz");
+            }
+        } catch (err) {
+            toast.error(err.message || "An error occurred while starting the quiz");
+        } finally {
+            setStartingQuizId(null);
+        }
+    };
 
     const upcomingQuizzes = availableQuizzes
         .filter((q) => q.timingStatus === "open" && !q.isAttempted)
@@ -348,8 +366,9 @@ function DashboardPage() {
                                             key={quiz._id}
                                             initial={{ opacity: 0, x: -20 }}
                                             animate={{ opacity: 1, x: 0 }}
-                                            onClick={() => navigate(`/student/quiz/${quiz._id}`)}
-                                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left"
+                                            onClick={() => handleStartQuiz(quiz._id)}
+                                            disabled={startingQuizId === quiz._id}
+                                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
                                             <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
                                                 <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -364,7 +383,11 @@ function DashboardPage() {
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <span className="px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
-                                                    Show
+                                                    {startingQuizId === quiz._id ? (
+                                                        <span className="loading loading-spinner loading-xs"></span>
+                                                    ) : (
+                                                        "Show"
+                                                    )}
                                                 </span>
                                             </div>
                                         </motion.button>

@@ -59,89 +59,18 @@ function QuizResultsPage() {
         fetchAttempt();
     }, [attemptId, currentAttempt, token]);
 
-    // Animated score counter
-    useEffect(() => {
-        if (!attempt || loading) return;
-
-        const target = scorePercentage;
-        const duration = 1200;
-        const startTime = performance.now();
-
-        const animate = (now) => {
-            const elapsed = now - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            // Ease-out cubic
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setAnimatedScore(Math.round(eased * target));
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            }
-        };
-
-        requestAnimationFrame(animate);
-    }, [attempt, loading]);
-
-    if (loading) {
-        return (
-            <PageWrapper>
-                <div className="min-h-[80vh] flex items-center justify-center">
-                    <span className="loading loading-spinner loading-lg text-blue-600"></span>
-                </div>
-            </PageWrapper>
-        );
-    }
-
-    if (error) {
-        return (
-            <PageWrapper>
-                <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
-                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center text-red-600 dark:text-red-400">
-                        <p className="text-xl font-bold mb-6">{error}</p>
-                        <button
-                            onClick={() => navigate("/student")}
-                            className="btn btn-primary gap-2"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                            Back to Dashboard
-                        </button>
-                    </div>
-                </div>
-            </PageWrapper>
-        );
-    }
-
-    if (!attempt) {
-        return (
-            <PageWrapper>
-                <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
-                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center">
-                        <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mb-6">
-                            Results not found
-                        </p>
-                        <button
-                            onClick={() => navigate("/student")}
-                            className="btn btn-primary gap-2"
-                        >
-                            <ArrowLeft className="w-5 h-5" />
-                            Back to Dashboard
-                        </button>
-                    </div>
-                </div>
-            </PageWrapper>
-        );
-    }
-
-    // Calculate stats
-    const rawScore = Number.isFinite(attempt.score)
-        ? attempt.score
-        : attempt.responses?.reduce(
-              (sum, r) =>
-                  sum +
-                  (Number.isFinite(r.pointsAwarded) ? r.pointsAwarded : 0),
-              0,
-          );
-    const totalPointsPossible = attempt.responses?.reduce(
+    // Calculate stats (safe for null attempt during initial loading)
+    const rawScore = attempt
+        ? (Number.isFinite(attempt.score)
+            ? attempt.score
+            : attempt.responses?.reduce(
+                  (sum, r) =>
+                      sum +
+                      (Number.isFinite(r.pointsAwarded) ? r.pointsAwarded : 0),
+                  0,
+              ) || 0)
+        : 0;
+    const totalPointsPossible = attempt?.responses?.reduce(
         (sum, r) => sum + (r.points || 1),
         0,
     ) || 0;
@@ -151,8 +80,8 @@ function QuizResultsPage() {
             : 0;
 
     const correctAnswers =
-        attempt.responses?.filter((r) => r.pointsAwarded > 0).length || 0;
-    const incorrectAnswers = (attempt.responses?.length || 0) - correctAnswers;
+        attempt?.responses?.filter((r) => r.pointsAwarded > 0).length || 0;
+    const incorrectAnswers = (attempt?.responses?.length || 0) - correctAnswers;
 
     // Determine performance level
     const getPerformanceData = (percentage) => {
@@ -204,11 +133,11 @@ function QuizResultsPage() {
         }
     };
 
-    const performance = getPerformanceData(scorePercentage);
-    const PerformanceIcon = performance.icon;
+    const performanceData = getPerformanceData(scorePercentage);
+    const PerformanceIcon = performanceData.icon;
 
     const timeTaken = (() => {
-        if (!attempt.submittedAt || (!attempt.startedAt && !attempt.startAt)) {
+        if (!attempt?.submittedAt || (!attempt?.startedAt && !attempt?.startAt)) {
             return null;
         }
 
@@ -224,23 +153,96 @@ function QuizResultsPage() {
         return diffMinutes;
     })();
 
+    // Animated score counter
+    useEffect(() => {
+        if (!attempt || loading) return;
+
+        const target = scorePercentage;
+        const duration = 1200;
+        const startTime = window.performance.now();
+
+        const animate = (now) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            // Ease-out cubic
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setAnimatedScore(Math.round(eased * target));
+
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            }
+        };
+
+        requestAnimationFrame(animate);
+    }, [attempt, loading, scorePercentage]);
+
+    if (loading) {
+        return (
+            <PageWrapper>
+                <div className="min-h-[80vh] flex items-center justify-center">
+                    <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                </div>
+            </PageWrapper>
+        );
+    }
+
+    if (error) {
+        return (
+            <PageWrapper>
+                <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
+                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center text-red-600 dark:text-red-400">
+                        <p className="text-xl font-bold mb-6">{error}</p>
+                        <button
+                            onClick={() => navigate("/student")}
+                            className="btn btn-primary gap-2"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                            Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </PageWrapper>
+        );
+    }
+
+    if (!attempt) {
+        return (
+            <PageWrapper>
+                <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
+                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center">
+                        <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mb-6">
+                            Results not found
+                        </p>
+                        <button
+                            onClick={() => navigate("/student")}
+                            className="btn btn-primary gap-2"
+                        >
+                            <ArrowLeft className="w-5 h-5" />
+                            Back to Dashboard
+                        </button>
+                    </div>
+                </div>
+            </PageWrapper>
+        );
+    }
+
     return (
         <PageWrapper>
             <main className="min-h-screen py-12 px-6 animate-in fade-in duration-500 relative z-10">
                 <div className="max-w-4xl mx-auto space-y-8">
                     {/* Main Results Card */}
                     <div
-                        className={`glass-panel overflow-hidden border shadow-2xl relative rounded-3xl ${performance.borderColor} dark:border-slate-700/50`}
+                        className={`glass-panel overflow-hidden border shadow-2xl relative rounded-3xl ${performanceData.borderColor} dark:border-slate-700/50`}
                     >
-                        <div className={`absolute top-0 left-0 w-full h-2 ${performance.bgColor} dark:bg-opacity-20`}></div>
+                        <div className={`absolute top-0 left-0 w-full h-2 ${performanceData.bgColor} dark:bg-opacity-20`}></div>
                         <div className="p-12 text-center relative z-10">
                             {/* Performance Icon and Label */}
                             <div className="flex justify-center mb-6">
                                 <div
-                                    className={`p-6 rounded-full ${performance.bgColor} dark:bg-opacity-10 border-2 ${performance.borderColor} dark:border-opacity-30 shadow-inner`}
+                                    className={`p-6 rounded-full ${performanceData.bgColor} dark:bg-opacity-10 border-2 ${performanceData.borderColor} dark:border-opacity-30 shadow-inner`}
                                 >
                                     <PerformanceIcon
-                                        className={`w-16 h-16 ${performance.color} dark:text-opacity-90`}
+                                        className={`w-16 h-16 ${performanceData.color} dark:text-opacity-90`}
                                     />
                                 </div>
                             </div>
@@ -250,16 +252,16 @@ function QuizResultsPage() {
                                 {attempt.quiz?.title || "Quiz Completed"}
                             </h1>
                         <p
-                            className={`text-lg font-semibold ${performance.color}`}
+                            className={`text-lg font-semibold ${performanceData.color}`}
                         >
-                            {performance.label} Performance
+                            {performanceData.label} Performance
                         </p>
 
                         {/* Score Display */}
                         <div className="my-8">
                             <div
                                 ref={scoreRef}
-                                className={`text-7xl font-black ${performance.color} mb-2 transition-all duration-300`}
+                                className={`text-7xl font-black ${performanceData.color} mb-2 transition-all duration-300`}
                             >
                                 {animatedScore}%
                             </div>
@@ -273,9 +275,9 @@ function QuizResultsPage() {
                             {/* Performance Message */}
                             <div className="glass-card bg-white/60 dark:bg-base-300/60 rounded-2xl p-6 mb-8 border border-white/40 dark:border-slate-700 max-w-lg mx-auto">
                                 <p
-                                    className={`text-lg font-bold ${performance.color} dark:text-opacity-90`}
+                                    className={`text-lg font-bold ${performanceData.color} dark:text-opacity-90`}
                                 >
-                                    {performance.message}
+                                    {performanceData.message}
                                 </p>
                             </div>
 

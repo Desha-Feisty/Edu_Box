@@ -301,9 +301,15 @@ const useQuizStore = create((set) => ({
 
             return response.data;
         } catch (error) {
-            set({
-                attemptError: error.response?.data?.errMsg || error.message,
-            });
+            const status = error.response?.status;
+            const errMsg = error.response?.data?.errMsg || error.message;
+            set({ attemptError: errMsg });
+
+            // Propagate 404 errors so calling components can handle redirects
+            if (status === 404) {
+                throw error;
+            }
+
             return null;
         }
     },
@@ -313,7 +319,7 @@ const useQuizStore = create((set) => ({
             const token = useAuthStore.getState().token;
             const payload = { questionId };
             
-            if (textAnswer !== undefined) {
+            if (textAnswer != null) {
                 payload.textAnswer = textAnswer;
             } else if (selectedChoiceIds) {
                 payload.selectedChoiceIds = selectedChoiceIds;

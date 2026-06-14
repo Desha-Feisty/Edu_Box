@@ -115,6 +115,8 @@ const startAttempt = async (req: AuthRequest, res: Response) => {
             endAt: { $gt: now.toDate() },
         }).lean();
         if (activeAttempt) {
+            console.log(`[startAttempt] Resuming existing active attempt ${activeAttempt._id} for user ${req.user._id}, quiz ${quiz._id}`);
+            
             // Get all questions and apply random selection if needed
             let allQuestions = await Question.find({ quiz: quiz._id })
                 .sort({ orderIndex: 1 })
@@ -221,6 +223,9 @@ const startAttempt = async (req: AuthRequest, res: Response) => {
         
         // Verify the attempt was saved
         const savedAttempt = await Attempt.findById(attempt._id);
+        
+        console.log(`[startAttempt] Created attempt ${attempt._id.toString()} for user ${req.user._id}, quiz ${quiz._id}`);
+        console.log(`[startAttempt] savedAttempt found:`, !!savedAttempt);
         
         return res.status(201).json({
             attemptId: attempt._id.toString(),
@@ -774,10 +779,15 @@ const getAttemptDetails = async (req: AuthRequest, res: Response) => {
             return res.status(400).json({ error: "Invalid attempt ID format" });
         }
 
-        // First, let's just check if ANY attempts exist for this user
+        // Debug: check what attempts this user has
         const userAttempts = req.user?._id 
-            ? await Attempt.find({ user: req.user._id }).select("_id status").limit(5).lean()
+            ? await Attempt.find({ user: req.user._id }).select("_id status quiz").limit(5).lean()
             : [];
+        
+        if (userAttempts.length > 0) {
+            console.warn(`[getAttemptDetails] User ${req.user?._id} has ${userAttempts.length} attempt(s):`, 
+                userAttempts.map(a => ({ id: a._id.toString(), status: a.status })));
+        }
 
         let attempt = await Attempt.findById(attemptId)
             .populate({ path: "responses.question", model: "Question" })
@@ -789,6 +799,17 @@ const getAttemptDetails = async (req: AuthRequest, res: Response) => {
         
         // Defensive check: attempt not found
         if (!attempt) {
+            console.warn(`[getAttemptDetails] Attempt ${attemptId} NOT FOUND for user ${req.user?._id}`);
+            console.warn(`[getAttemptDetails] Searched with attemptId type:`, typeof attemptId, `value length:`, attemptId?.length);
+            console.warn(`[getAttemptDetails] User attempts found:`, userAttempts.length);
+            if (userAttempts.length > 0) {
+                const match = userAttempts.find(a => a._id.toString() === attemptId);
+                console.warn(`[getAttemptDetails] Exact ID match in user attempts:`, !!match);
+                if (!match) {
+                    console.warn(`[getAttemptDetails] User attempt IDs:`, userAttempts.map(a => a._id.toString()));
+                }
+            }
+            
             // Return more helpful error message
             return res.status(404).json({ 
                 error: "Attempt not found",
