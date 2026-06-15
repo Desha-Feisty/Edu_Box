@@ -2,7 +2,7 @@
 // EduBox Shared Types
 // ============================================
 
-import type { UserRole, QuizStatus, GradingMode, NotificationType, TicketStatus, TicketPriority } from "../constants.js";
+import type { UserRole, GradingMode, NotificationType, TicketStatus, TicketPriority, QuestionType, AttemptStatus } from "../constants.js";
 
 // ============================================
 // User Types
@@ -74,6 +74,7 @@ export interface IQuiz {
     published: boolean;
     gradingMode: GradingMode;
     aiGrading?: boolean;
+    closeNotifiedAt?: Date | null;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -95,47 +96,68 @@ export interface ICreateQuizData {
 export interface IQuizSubmitData {
     answers: Array<{
         questionId: string;
-        selectedOption: number;
+        selectedChoiceIds: string[];
+        textAnswer?: string;
     }>;
 }
 
 // ============================================
 // Question Types
 // ============================================
+export interface IChoice {
+    _id?: string;
+    text: string;
+    isCorrect?: boolean;
+}
+
 export interface IQuestion {
     _id: string;
     quiz: string | IQuiz;
-    text: string;
-    options: string[];
-    correctOption: number;
+    questionType: QuestionType;
+    prompt: string;
     points: number;
+    orderIndex: number;
+    choices: IChoice[];
+    sampleAnswer?: string;
+    rubric?: string;
     createdAt: Date;
     updatedAt: Date;
 }
 
 export interface ICreateQuestionData {
     quiz: string;
-    text: string;
-    options: string[];
-    correctOption: number;
+    questionType: QuestionType;
+    prompt: string;
     points: number;
+    orderIndex?: number;
+    choices: Array<{ text: string; isCorrect?: boolean }>;
+    sampleAnswer?: string;
+    rubric?: string;
 }
 
 // ============================================
 // Attempt Types
 // ============================================
+export interface IResponse {
+    question: string;
+    selectedChoiceIds: string[];
+    textAnswer?: string;
+    aiScore?: number;
+    aiFeedback?: string;
+    pointsAwarded?: number;
+}
+
 export interface IAttempt {
     _id: string;
     quiz: string | IQuiz;
-    student: string | IUser;
-    answers: Array<{
-        questionId: string;
-        selectedOption: number;
-    }>;
-    score?: number;
-    gradedBy?: "auto" | "ai";
-    startedAt: Date;
+    user: string | IUser;
+    startAt: Date;
+    endAt: Date;
     submittedAt?: Date;
+    status?: AttemptStatus;
+    score?: number;
+    maxScore?: number;
+    responses: IResponse[];
     createdAt: Date;
     updatedAt: Date;
 }

@@ -28,6 +28,16 @@ export const QUIZ_STATUS = {
 export type QuizStatus = (typeof QUIZ_STATUS)[keyof typeof QUIZ_STATUS];
 
 // ============================================
+// Question Types
+// ============================================
+export type QuestionType = "mcq_single" | "written";
+
+// ============================================
+// Attempt Status
+// ============================================
+export type AttemptStatus = "inProgress" | "graded" | "expired" | "late" | "submitted";
+
+// ============================================
 // Notification Types
 // ============================================
 export const NOTIFICATION_TYPES = {
@@ -100,7 +110,7 @@ export const ROUTES = {
 // Quiz Time Limits (minutes)
 // ============================================
 export const QUIZ_LIMITS = {
-    MIN_DURATION: 1,
+    MIN_DURATION: 10,
     MAX_DURATION: 180,
     DEFAULT_DURATION: 30,
 } as const;

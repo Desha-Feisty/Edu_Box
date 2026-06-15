@@ -33,6 +33,7 @@
     "author": "Mostafa Abo-Hamar",
     "license": "ISC",
     "devDependencies": {
-        "concurrently": "^8.2.0"
+        "concurrently": "^8.2.0",
+        "mongodb-memory-server": "^11.2.0"
     }
 }

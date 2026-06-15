@@ -104,6 +104,21 @@ const useQuizStore = create((set) => ({
         }
     },
 
+    getQuiz: async (quizId) => {
+        try {
+            set({ errMsg: null });
+            const token = useAuthStore.getState().token;
+            const response = await axios.get(`/api/quizzes/${quizId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            return response.data.quiz || response.data;
+        } catch (error) {
+            const errMsg = error.response?.data?.errMsg || error.message;
+            set({ errMsg });
+            throw new Error(errMsg);
+        }
+    },
+
     listQuizQuestions: async (quizId) => {
         try {
             const token = useAuthStore.getState().token;
@@ -406,6 +421,46 @@ const useQuizStore = create((set) => ({
                 "Failed to publish quiz";
             set({ errMsg });
             throw error;
+        }
+    },
+
+    updateQuiz: async (quizId, quizData) => {
+        try {
+            set({ errMsg: null });
+            const token = useAuthStore.getState().token;
+            if (!token) {
+                const errMsg = "Not authenticated. Please log in again.";
+                set({ errMsg });
+                throw new Error(errMsg);
+            }
+            const response = await axios.put(`/api/quizzes/${quizId}`, quizData, {
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            if (response.status === 200) {
+                set((state) => ({
+                    quizzes: state.quizzes.map((q) =>
+                        q._id === quizId ? { ...q, ...response.data.quiz } : q,
+                    ),
+                }));
+                return response.data;
+            }
+            const errMsg =
+                response.data?.errMsg ||
+                response.data?.error ||
+                "Failed to update quiz";
+            set({ errMsg });
+            throw new Error(errMsg);
+        } catch (error) {
+            const errMsg =
+                error.response?.data?.errMsg ||
+                error.response?.data?.error ||
+                error.message ||
+                "Failed to update quiz";
+            set({ errMsg });
+            throw new Error(errMsg);
         }
     },
 

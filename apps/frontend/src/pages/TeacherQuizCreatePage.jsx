@@ -28,9 +28,11 @@ export default function TeacherQuizCreatePage() {
     const [searchParams] = useSearchParams();
     const token = useAuthStore((state) => state.token);
     const { allCourses, listMyCourses } = useTeacherStore();
-    const { createQuiz } = useQuizStore();
+    const { createQuiz, updateQuiz, getQuiz } = useQuizStore();
 
     const preselectedCourseId = searchParams.get("courseId");
+    const editQuizId = searchParams.get("editQuizId");
+    const isEditing = !!editQuizId;
 
     const [step, setStep] = useState(preselectedCourseId ? 2 : 1);
     const [selectedCourse, setSelectedCourse] = useState(null);
@@ -70,6 +72,40 @@ export default function TeacherQuizCreatePage() {
         }
     }, [preselectedCourseId, allCourses]);
 
+    // S3-6: Edit mode — fetch existing quiz data to pre-populate form
+    useEffect(() => {
+        if (!editQuizId || !allCourses.length) return;
+        const loadQuiz = async () => {
+            setIsLoading(true);
+            try {
+                const quiz = await getQuiz(editQuizId);
+                // Pre-populate form fields
+                setNewQuiz({
+                    title: quiz.title || "",
+                    description: quiz.description || "",
+                    openAt: quiz.openAt ? quiz.openAt.slice(0, 16) : "",
+                    closeAt: quiz.closeAt ? quiz.closeAt.slice(0, 16) : "",
+                    durationMinutes: quiz.durationMinutes || 30,
+                    attemptsAllowed: quiz.attemptsAllowed || 1,
+                    gradingMode: quiz.gradingMode || "onSubmit",
+                    questionsPerAttempt: quiz.questionsPerAttempt ?? "",
+                });
+                // Find and select the course
+                const cId = typeof quiz.course === "object" ? (quiz.course._id || quiz.course.id) : quiz.course;
+                const course = allCourses.find((c) => (c._id || c.id) === cId);
+                if (course) {
+                    setSelectedCourse(course);
+                }
+            } catch (_) {
+                toast.error("Failed to load quiz for editing");
+                navigate("/teacher");
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        loadQuiz();
+    }, [editQuizId, allCourses, getQuiz, navigate]);
+
     const handleCreateQuiz = async (e) => {
         e.preventDefault();
         if (!selectedCourse) {
@@ -82,6 +118,24 @@ export default function TeacherQuizCreatePage() {
             setStep(2);
             return;
         }
+
+        // B2: Frontend date validation
+        if (newQuiz.openAt) {
+            const openDate = new Date(newQuiz.openAt);
+            if (openDate <= new Date()) {
+                toast.error("Open date must be in the future");
+                return;
+            }
+        }
+        if (newQuiz.closeAt && newQuiz.openAt) {
+            const closeDate = new Date(newQuiz.closeAt);
+            const openDate = new Date(newQuiz.openAt);
+            if (closeDate <= openDate) {
+                toast.error("Close date must be after open date");
+                return;
+            }
+        }
+
         const courseId = selectedCourse._id || selectedCourse.id;
         if (!courseId) {
             toast.error("Invalid course selected");
@@ -90,11 +144,17 @@ export default function TeacherQuizCreatePage() {
         }
         setIsCreatingQuiz(true);
         try {
-            const result = await createQuiz(courseId, newQuiz);
-            toast.success("Quiz created successfully");
-            navigate(`/teacher/quiz/${result.quiz._id}/questions`);
+            if (isEditing) {
+                await updateQuiz(editQuizId, newQuiz);
+                toast.success("Quiz updated successfully");
+                navigate(`/teacher/quiz/${editQuizId}/questions`);
+            } else {
+                const result = await createQuiz(courseId, newQuiz);
+                toast.success("Quiz created successfully");
+                navigate(`/teacher/quiz/${result.quiz._id}/questions`);
+            }
         } catch (err) {
-            toast.error(err.message || "Failed to create quiz");
+            toast.error(err.message || (isEditing ? "Failed to update quiz" : "Failed to create quiz"));
         } finally {
             setIsCreatingQuiz(false);
         }
@@ -123,10 +183,10 @@ export default function TeacherQuizCreatePage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        Create Quiz
+                        {isEditing ? "Edit Quiz" : "Create Quiz"}
                     </h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-1">
-                        Set up a new quiz for your students
+                        {isEditing ? "Update your quiz settings" : "Set up a new quiz for your students"}
                     </p>
                 </div>
 
@@ -261,7 +321,7 @@ export default function TeacherQuizCreatePage() {
                                     </div>
                                     <div>
                                         <p className="text-xs font-medium text-violet-600 dark:text-violet-400 uppercase tracking-wider">
-                                            Creating quiz for
+                                            {isEditing ? "Editing quiz for" : "Creating quiz for"}
                                         </p>
                                         <p className="font-bold text-slate-900 dark:text-white">
                                             {selectedCourse?.title}
@@ -514,12 +574,12 @@ export default function TeacherQuizCreatePage() {
                                         {isCreatingQuiz ? (
                                             <>
                                                 <span className="loading loading-spinner loading-sm" />
-                                                Creating...
+                                                {isEditing ? "Saving..." : "Creating..."}
                                             </>
                                         ) : (
                                             <>
                                                 <Sparkles className="w-4 h-4 mr-2" />
-                                                Create Quiz
+                                                {isEditing ? "Save Changes" : "Create Quiz"}
                                             </>
                                         )}
                                     </button>

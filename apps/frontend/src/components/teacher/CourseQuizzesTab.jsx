@@ -109,7 +109,12 @@ export default function CourseQuizzesTab({
                                 <div className="flex flex-row sm:flex-col gap-2 shrink-0">
                                     {!quiz.published ? (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); handlePublishQuiz(quiz._id); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm("Publish this quiz? Students will be able to see and attempt it.")) {
+                                                    handlePublishQuiz(quiz._id);
+                                                }
+                                            }}
                                             className="btn btn-success btn-sm text-white shadow-md shadow-success/20 gap-2 w-full sm:w-auto hover:-translate-y-0.5 transition-transform"
                                         >
                                             <CheckCircle className="w-4 h-4" />
@@ -117,7 +122,12 @@ export default function CourseQuizzesTab({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={(e) => { e.stopPropagation(); handleUnpublishQuiz(quiz._id); }}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm("Unpublish this quiz? Students will no longer be able to access it.")) {
+                                                    handleUnpublishQuiz(quiz._id);
+                                                }
+                                            }}
                                             className="btn btn-warning btn-sm text-warning-content shadow-md shadow-warning/20 gap-2 w-full sm:w-auto hover:-translate-y-0.5 transition-transform"
                                         >
                                             <Clock className="w-4 h-4" />
@@ -132,7 +142,12 @@ export default function CourseQuizzesTab({
                                         Questions
                                     </button>
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); handleDeleteQuiz(quiz._id); }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (window.confirm("Delete this quiz? This action cannot be undone.")) {
+                                                handleDeleteQuiz(quiz._id);
+                                            }
+                                        }}
                                         className="btn btn-ghost text-red-500 dark:text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 btn-sm gap-2 w-full sm:w-auto"
                                     >
                                         <Trash2 className="w-4 h-4" />

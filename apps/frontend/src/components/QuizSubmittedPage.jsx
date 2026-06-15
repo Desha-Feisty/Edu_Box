@@ -1,15 +1,50 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { CheckCircle, Clock, Calendar } from "lucide-react";
 import PageWrapper from "./layout/PageWrapper";
 import Navbar from "./layout/Navbar";
+import useAuthStore from "../stores/Authstore";
 
 function QuizSubmittedPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { attemptId } = useParams();
+    const token = useAuthStore((state) => state.token);
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [quizEndAt, setQuizEndAt] = useState(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const quizEndAt = location.state?.quizEndAt;
+    // S3-5: Fall back to sessionStorage or API fetch when state is lost on refresh
+    useEffect(() => {
+        const stateEndAt = location.state?.quizEndAt;
+        if (stateEndAt) {
+            sessionStorage.setItem("quizEndAt", stateEndAt);
+            setQuizEndAt(stateEndAt);
+        } else {
+            const cached = sessionStorage.getItem("quizEndAt");
+            if (cached) {
+                setQuizEndAt(cached);
+            } else if (attemptId && token) {
+                // Last resort: fetch the attempt from API
+                setIsLoading(true);
+                fetch(`/api/attempts/${attemptId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                })
+                    .then((r) => r.json())
+                    .then((data) => {
+                        if (data.attempt?.quiz?.closeAt) {
+                            const closeAt = data.attempt.quiz.closeAt;
+                            sessionStorage.setItem("quizEndAt", closeAt);
+                            setQuizEndAt(closeAt);
+                        }
+                    })
+                    .catch(() => {
+                        // Graceful degradation — just hide the countdown
+                    })
+                    .finally(() => setIsLoading(false));
+            }
+        }
+    }, [location.state, attemptId, token]);
 
     useEffect(() => {
         if (!quizEndAt) return;
@@ -63,9 +98,13 @@ function QuizSubmittedPage() {
                             <span className="font-medium">Time Until Results</span>
                         </div>
                         <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-                            {timeRemaining !== null && timeRemaining > 0 
-                                ? formatTime(timeRemaining) 
-                                : "Quiz Closed"}
+                            {isLoading ? (
+                                <span className="loading loading-spinner loading-md" />
+                            ) : timeRemaining !== null && timeRemaining > 0 ? (
+                                formatTime(timeRemaining)
+                            ) : (
+                                "Quiz Closed"
+                            )}
                         </div>
                     </div>
 

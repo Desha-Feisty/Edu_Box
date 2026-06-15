@@ -15,6 +15,7 @@ import {
     AlertCircle,
 } from "lucide-react";
 import PageWrapper from "./layout/PageWrapper";
+import QuizTimer from "./quiz/QuizTimer";
 
 function StudentQuizPage() {
     const { attemptId } = useParams();
@@ -46,10 +47,12 @@ function StudentQuizPage() {
 
     const [answers, setAnswers] = useState({});
     const [timeRemaining, setTimeRemaining] = useState(null);
+    const [gracePeriod, setGracePeriod] = useState(null); // S5: seconds remaining in grace before auto-submit
     const [showWarning, setShowWarning] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savingIndices, setSavingIndices] = useState(new Set());
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [lastSavedTimes, setLastSavedTimes] = useState({}); // { questionId: Date }
     
     // Use a ref to track if we've initiated the fetch for this attemptId
     const fetchedAttemptId = useRef(null);
@@ -57,6 +60,8 @@ function StudentQuizPage() {
     const debounceTimer = useRef(null);
     // Track in-flight save promises so we can flush before submission
     const pendingSaves = useRef(new Map());
+    // S3-7: Ref to disable navigation guard after submission
+    const submissionLock = useRef(false);
 
     useEffect(() => {
         // Skip if we've already fetched this attempt
@@ -68,9 +73,21 @@ function StudentQuizPage() {
         // Fetch attempt data - state reset happens in .then() to avoid cascading renders
         fetchAttempt(attemptId)
                 .then((data) => {
+                    // S6: Redirect if attempt is already submitted/graded/expired
+                    if (data?.attempt?.status && data.attempt.status !== "inProgress") {
+                        const status = data.attempt.status;
+                        if (status === "graded" || status === "submitted" || status === "late") {
+                            navigate(`/student/quiz/${attemptId}/results`);
+                        } else {
+                            navigate("/student/quizzes");
+                        }
+                        return;
+                    }
+
                     // Reset local state for new attempt
                     setIsSubmitted(false);
                     setAnswers({});
+                    setLastSavedTimes({});
                     
                     // Only load saved answers if the attempt is actually in progress
                     // Don't load answers from completed/submitted/graded attempts
@@ -122,6 +139,7 @@ function StudentQuizPage() {
     const handleAutoSubmit = useCallback(async () => {
         if (isSubmitting || isSubmitted) return;
         
+        setGracePeriod(null); // Clear grace period if still active
         setIsSubmitting(true);
 
         // Flush any pending debounced save before submission
@@ -163,6 +181,18 @@ function StudentQuizPage() {
         }
     }, [attemptId, submitAttempt, navigate, isSubmitting, isSubmitted]);
 
+    // S3-7: Warn before leaving the page with unsaved progress
+    useEffect(() => {
+        if (!currentAttempt?.endAt || currentAttempt?.status !== "inProgress") return;
+        const handler = (e) => {
+            if (submissionLock.current) return;
+            e.preventDefault();
+            e.returnValue = "";
+        };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [currentAttempt?.endAt, currentAttempt?.status]);
+
     useEffect(() => {
         if (!currentAttempt?.endAt) return;
 
@@ -183,16 +213,30 @@ function StudentQuizPage() {
                 toast.error("⏰ Only 5 minutes remaining!");
             }
 
-            if (remainingSeconds <= 0 && !isSubmitting && !isSubmitted) {
-                setIsSubmitted(true);
-                handleAutoSubmit();
+            if (remainingSeconds <= 0 && !isSubmitting && !isSubmitted && gracePeriod === null) {
+                setGracePeriod(15); // S5: start 15-second grace countdown
             }
         };
 
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, [currentAttempt?.endAt, showWarning, handleAutoSubmit, isSubmitting, isSubmitted]);
+    }, [currentAttempt?.endAt, showWarning, handleAutoSubmit, isSubmitting, isSubmitted, gracePeriod]);
+
+    // S5: Grace period countdown — auto-submits when grace reaches 0
+    useEffect(() => {
+        if (gracePeriod === null || gracePeriod <= 0) return;
+        const timer = setTimeout(() => {
+            const next = gracePeriod - 1;
+            if (next <= 0) {
+                setIsSubmitted(true);
+                handleAutoSubmit();
+            } else {
+                setGracePeriod(next);
+            }
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [gracePeriod, handleAutoSubmit]);
 
     const handleAnswerChange = useCallback(
         (questionId, choiceId, textAnswer) => {
@@ -225,7 +269,8 @@ function StudentQuizPage() {
                 pendingSaves.current.delete(questionId);
 
                 if (success) {
-                    toast.success("Answer saved");
+                    // C2: Record last-saved timestamp for inline confirmation feedback
+                    setLastSavedTimes((prev) => ({ ...prev, [questionId]: new Date() }));
                 } else {
                     toast.error("Failed to save answer");
                 }
@@ -240,22 +285,22 @@ function StudentQuizPage() {
         [attemptId, submitAnswer],
     );
 
-    const formatTime = (seconds) => {
-        if (seconds === null) return "00:00";
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
-    };
-
     const allQuestionsAnswered = attemptQuestions.every((q) => {
         const answer = answers[q._id];
         if (q.questionType === "written") {
-            // Written questions need text answer
             return answer?.textAnswer?.trim()?.length > 0;
         }
-        // MCQ questions need at least one choice selected
         return answer?.length > 0;
     });
+
+    const unansweredCount = attemptQuestions.length - Object.keys(answers).filter((qId) => {
+        const answer = answers[qId];
+        const question = attemptQuestions.find(q => q._id === qId);
+        if (question?.questionType === "written") {
+            return answer?.textAnswer?.trim()?.length > 0;
+        }
+        return answer?.length > 0;
+    }).length;
 
     const currentQuestionIndex = selectedQuestion
         ? attemptQuestions.findIndex((q) => q._id === selectedQuestion._id) + 1
@@ -269,13 +314,6 @@ function StudentQuizPage() {
         }
         return answer?.length > 0;
     }).length;
-
-    const timeColor =
-        timeRemaining <= 60
-            ? "text-error"
-            : timeRemaining <= 300
-              ? "text-warning"
-              : "text-success";
 
     if (!currentAttempt || !attemptQuestions.length) {
         return (
@@ -312,25 +350,23 @@ function StudentQuizPage() {
                         </p>
                     </div>
 
-                    {/* Timer Display */}
-                    <div
-                        className={`glass-card p-3 px-6 border-2 transition-colors ${
-                            timeRemaining <= 60
-                                ? "border-red-400/50 dark:border-red-500/50 shadow-red-500/20 bg-red-50/50 dark:bg-red-900/20"
-                                : timeRemaining <= 300
-                                  ? "border-orange-400/50 dark:border-orange-500/50 shadow-orange-500/20 bg-orange-50/50 dark:bg-orange-900/20"
-                                  : "border-blue-200/50 dark:border-blue-500/30 shadow-blue-500/10"
-                        }`}
-                    >
-                        <div className="flex flex-col items-center">
-                            <div className={`text-3xl font-black font-mono tracking-widest ${timeColor === "text-error" ? "text-red-600 dark:text-red-400" : timeColor === "text-warning" ? "text-orange-600 dark:text-orange-400" : "text-blue-600 dark:text-blue-400"}`}>
-                                {formatTime(timeRemaining)}
-                            </div>
-                            <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mt-0.5">
-                                Time Remaining
-                            </p>
-                        </div>
-                    </div>
+                    {/* QuizTimer — reusable component with progress bar */}
+                    <QuizTimer
+                        endAt={currentAttempt?.endAt}
+                        totalDuration={
+                            currentAttempt?.startAt && currentAttempt?.endAt
+                                ? Math.floor((new Date(currentAttempt.endAt).getTime() - new Date(currentAttempt.startAt).getTime()) / 1000)
+                                : undefined
+                        }
+                        onTimeUp={() => {
+                            if (!isSubmitting && !isSubmitted) {
+                                setIsSubmitted(true);
+                                handleAutoSubmit();
+                            }
+                        }}
+                        showControls={false}
+                        minimal
+                    />
                 </div>
 
                 {/* Warning Banner */}
@@ -386,6 +422,7 @@ function StudentQuizPage() {
                                                         question,
                                                     )
                                                 }
+                                                disabled={gracePeriod !== null}
                                                 className={`w-full text-left px-3 py-2 rounded-lg transition-all flex items-center gap-2 ${
                                                     isSelected
                                                         ? "bg-blue-100 dark:bg-blue-900/40 border border-blue-300 dark:border-blue-700"
@@ -413,12 +450,16 @@ function StudentQuizPage() {
                                                     </p>
                                                     {savingIndices.has(
                                                         question._id,
-                                                    ) && (
+                                                    ) ? (
                                                         <p className="text-xs text-blue-600 flex items-center gap-1">
                                                             <Save className="w-3 h-3" />
                                                             Saving...
                                                         </p>
-                                                    )}
+                                                    ) : lastSavedTimes[question._id] ? (
+                                                        <p className="text-xs text-green-600 dark:text-green-400">
+                                                            Saved {lastSavedTimes[question._id].toLocaleTimeString()}
+                                                        </p>
+                                                    ) : null}
                                                 </div>
                                             </button>
                                         );
@@ -433,6 +474,36 @@ function StudentQuizPage() {
                         <div className="glass-panel overflow-hidden border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl min-h-[60vh]">
                             <div className="p-8 md:p-10 relative">
                                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                                {/* S5: Grace period overlay when time expires */}
+                                {gracePeriod !== null && (
+                                    <div className="absolute inset-0 bg-base-300/90 backdrop-blur-sm z-50 flex items-center justify-center rounded-2xl">
+                                        <div className="text-center p-8 max-w-md">
+                                            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-500/25">
+                                                <Clock className="w-10 h-10 text-white" />
+                                            </div>
+                                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
+                                                Time&apos;s Up!
+                                            </h3>
+                                            <p className="text-slate-600 dark:text-slate-300 mb-6">
+                                                Don&apos;t worry — your answers are being saved. Quiz will auto-submit momentarily.
+                                            </p>
+                                            <div className="mb-4">
+                                                <span className="text-5xl font-bold text-orange-500 dark:text-orange-400">
+                                                    {gracePeriod}
+                                                </span>
+                                                <span className="text-lg text-slate-500 dark:text-slate-400 ml-2">
+                                                    seconds remaining
+                                                </span>
+                                            </div>
+                                            <div className="w-64 h-2.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-1000"
+                                                    style={{ width: `${(gracePeriod / 15) * 100}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 {selectedQuestion && (
                                     <div className="flex flex-col h-full relative z-10 animate-in fade-in duration-300">
                                         {/* Question Header */}
@@ -467,8 +538,6 @@ function StudentQuizPage() {
                                                 (() => {
                                                     const answer = answers[selectedQuestion._id];
                                                     if (!answer) return false;
-                                                    // MCQ: answer is an array of choice IDs
-                                                    // Written: answer is { textAnswer: "..." }
                                                     return Array.isArray(answer)
                                                         ? answer.length > 0
                                                         : (answer.textAnswer?.trim()?.length > 0);
@@ -477,6 +546,11 @@ function StudentQuizPage() {
                                                         <CheckCircle className="w-4 h-4" />
                                                         <span>
                                                             Answer saved
+                                                            {lastSavedTimes[selectedQuestion._id] && (
+                                                                <span className="text-slate-400 ml-1">
+                                                                    · {lastSavedTimes[selectedQuestion._id].toLocaleTimeString()}
+                                                                </span>
+                                                            )}
                                                         </span>
                                                     </div>
                                                 )}
@@ -505,7 +579,7 @@ function StudentQuizPage() {
                                                                 );
                                                             }
                                                         }}
-                                                        disabled={isSubmitting}
+                                                        disabled={isSubmitting || gracePeriod !== null}
                                                         className="textarea h-48 bg-white/50 dark:bg-base-300/50 border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50 rounded-xl text-base resize-y"
                                                         placeholder="Type your answer here..."
                                                     />
@@ -549,7 +623,7 @@ function StudentQuizPage() {
                                                                             )
                                                                         }
                                                                         disabled={
-                                                                            isSubmitting
+                                                                            isSubmitting || gracePeriod !== null
                                                                         }
                                                                         className="radio radio-primary mt-1 shrink-0"
                                                                     />
@@ -608,7 +682,7 @@ function StudentQuizPage() {
                                                             (q) =>
                                                                 q._id ===
                                                                 selectedQuestion._id,
-                                                        ) === 0 || isSubmitting
+                                                        ) === 0 || isSubmitting || gracePeriod !== null
                                                     }
                                                     className="btn btn-ghost gap-2"
                                                 >
@@ -644,7 +718,7 @@ function StudentQuizPage() {
                                                         ) ===
                                                             attemptQuestions.length -
                                                                 1 ||
-                                                        isSubmitting
+                                                        isSubmitting || gracePeriod !== null
                                                     }
                                                     className="btn btn-ghost gap-2"
                                                 >
@@ -654,11 +728,15 @@ function StudentQuizPage() {
                                             </div>
 
                                             <button
-                                                onClick={handleAutoSubmit}
-                                                disabled={
-                                                    isSubmitting ||
-                                                    !allQuestionsAnswered
-                                                }
+                                                onClick={() => {
+                                                    if (!allQuestionsAnswered) {
+                                                        if (!window.confirm(
+                                                            `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? "s" : ""}. Submit anyway?`
+                                                        )) return;
+                                                    }
+                                                    handleAutoSubmit();
+                                                }}
+                                                disabled={isSubmitting || gracePeriod !== null}
                                                 className="btn btn-success gap-2"
                                             >
                                                 {isSubmitting ? (
@@ -680,8 +758,7 @@ function StudentQuizPage() {
                                             <div className="alert alert-warning mt-6">
                                                 <AlertTriangle className="w-5 h-5" />
                                                 <span>
-                                                    Please answer all questions
-                                                    before submitting.
+                                                    {unansweredCount} question{unansweredCount > 1 ? "s" : ""} unanswered. You can still submit.
                                                 </span>
                                             </div>
                                         )}

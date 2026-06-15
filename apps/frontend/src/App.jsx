@@ -45,6 +45,7 @@ const StudentQuizzesPage = lazy(() => import("./pages/StudentQuizzesPage.jsx"));
 const StudentGradesPage = lazy(() => import("./pages/StudentGradesPage.jsx"));
 const StudentCalendarPage = lazy(() => import("./pages/StudentCalendarPage.jsx"));
 const TeacherCoursesPage = lazy(() => import("./pages/TeacherCoursesPage.jsx"));
+const TeacherChatsPage = lazy(() => import("./pages/TeacherChatsPage.jsx"));
 const TeacherQuizCreatePage = lazy(() => import("./pages/TeacherQuizCreatePage.jsx"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage.jsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
@@ -266,6 +267,7 @@ function App() {
 
                         {/* Standalone Pages */}
                         <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
+                        <Route path="/teacher/chats" element={<TeacherChatsPage />} />
                         <Route path="/teacher/quiz/create" element={<TeacherQuizCreatePage />} />
                         <Route path="/teacher/course/:id" element={<TeacherCoursePage />} />
                         <Route path="/teacher/quiz/:id/questions" element={<QuizQuestionsPage />} />

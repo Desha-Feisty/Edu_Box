@@ -129,11 +129,11 @@ export const createQuizSchema = Joi.object({
             "any.required": "Close date is required",
         }),
     durationMinutes: Joi.number()
-        .min(1)
+        .min(10)
         .max(180)
         .required()
         .messages({
-            "number.min": "Duration must be at least 1 minute",
+            "number.min": "Duration must be at least 10 minutes",
             "number.max": "Duration must not exceed 180 minutes",
             "any.required": "Duration is required",
         }),
@@ -162,7 +162,8 @@ export const submitQuizSchema = Joi.object({
         .items(
             Joi.object({
                 questionId: Joi.string().required(),
-                selectedOption: Joi.number().min(0).required(),
+                selectedChoiceIds: Joi.array().items(Joi.string()).optional(),
+                textAnswer: Joi.string().optional(),
             })
         )
         .min(1)
@@ -182,32 +183,33 @@ export const createQuestionSchema = Joi.object({
         .messages({
             "any.required": "Quiz is required",
         }),
-    text: Joi.string()
-        .min(5)
-        .max(500)
+    questionType: Joi.string()
+        .valid("mcq_single", "written")
         .required()
         .messages({
-            "string.min": "Question text must be at least 5 characters",
-            "string.max": "Question text must not exceed 500 characters",
-            "any.required": "Question text is required",
+            "any.required": "Question type is required",
         }),
-    options: Joi.array()
-        .items(Joi.string().min(1).max(200))
-        .length(4)
+    prompt: Joi.string()
+        .min(2)
+        .max(5000)
         .required()
         .messages({
-            "array.length": "Exactly 4 options are required",
-            "any.required": "Options are required",
+            "string.min": "Question prompt must be at least 2 characters",
+            "string.max": "Question prompt must not exceed 5000 characters",
+            "any.required": "Question prompt is required",
         }),
-    correctOption: Joi.number()
-        .min(0)
-        .max(3)
-        .required()
-        .messages({
-            "number.min": "Correct option must be between 0 and 3",
-            "number.max": "Correct option must be between 0 and 3",
-            "any.required": "Correct option is required",
-        }),
+    choices: Joi.array()
+        .items(Joi.object({
+            text: Joi.string().min(1).max(500).required(),
+            isCorrect: Joi.boolean().optional(),
+        }))
+        .optional(),
+    sampleAnswer: Joi.string()
+        .max(5000)
+        .optional(),
+    rubric: Joi.string()
+        .max(5000)
+        .optional(),
     points: Joi.number()
         .min(1)
         .max(100)

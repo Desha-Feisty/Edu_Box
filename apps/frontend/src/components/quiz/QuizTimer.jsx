@@ -13,6 +13,7 @@ import {
 
 function QuizTimer({
     endAt,
+    totalDuration, // Total quiz duration in seconds (overrides auto-calc from endAt)
     onTimeUp,
     isPaused = false,
     onPauseToggle,
@@ -20,10 +21,20 @@ function QuizTimer({
     size = "medium",
     minimal = false,
 }) {
+    // C1: Capture the total quiz duration for accurate progress bar
+    const [initialTimeLeft] = useState(() => {
+        if (!endAt) return 0;
+        return Math.max(0, differenceInSeconds(new Date(endAt), new Date()));
+    });
+
     const [timeLeft, setTimeLeft] = useState(() => {
         if (!endAt) return 0;
         return Math.max(0, differenceInSeconds(new Date(endAt), new Date()));
     });
+
+    // Use totalDuration if provided, otherwise use the initial calculated timeLeft
+    const totalDurationSec = totalDuration || initialTimeLeft;
+    const progressPct = totalDurationSec > 0 ? Math.min(100, (timeLeft / totalDurationSec) * 100) : 0;
 
     // Update timer every second
     useEffect(() => {
@@ -236,7 +247,7 @@ function QuizTimer({
                         <motion.div
                             initial={{ width: "100%" }}
                             animate={{
-                                width: `${Math.min(100, (timeLeft / 3600) * 100)}%`,
+                                width: `${progressPct}%`,
                             }}
                             transition={{ duration: 1 }}
                             className={`h-full ${colors.bg} rounded-full`}

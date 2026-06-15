@@ -47,77 +47,16 @@ const createQuizSchema = Joi.object({
                 throw new Error(`durationMinutes cannot exceed the time window between openAt and closeAt (${Math.floor(timeWindowMinutes)} minutes)`);
             }
 
+            // S1-4: openAt must be strictly in the future
+            if (openDate <= new Date()) {
+                throw new Error("openAt must be in the future");
+            }
+
             return value;
         } catch (err: any) {
             throw new Error(err.message || "Invalid date format");
         }
     });
-
-const createQuiz = async (req: AuthRequest, res: Response) => {
-    try {
-        const courseId = req.params.id || req.params.courseId;
-
-        if (!courseId) {
-            return res.status(400).json({
-                errMsg: "invalid course id - parameter 'id' is missing",
-            });
-        }
-
-        if (!req.user || req.user.role !== "teacher") {
-            return res.status(403).json({
-                errMsg: "forbidden - only teachers can create quizzes",
-            });
-        }
-
-        const course = await Course.findById(courseId);
-        if (!course) {
-            return res.status(404).json({ errMsg: "course not found" });
-        }
-
-        const teacherId =
-            course.teacher instanceof Types.ObjectId
-                ? course.teacher.toString()
-                : (course.teacher as any)._id?.toString() ||
-                  course.teacher.toString();
-
-        if (teacherId !== req.user._id) {
-            console.error(
-                `Unauthorized quiz creation attempt: course teacher ${teacherId} vs user ${req.user._id}`,
-            );
-            return res
-                .status(403)
-                .json({ errMsg: "forbidden - you do not own this course" });
-        }
-
-        const { error, value } = createQuizSchema.validate(req.body);
-        if (error) {
-            console.error("Validation error:", error.message);
-            return res.status(400).json({ errMsg: error.message });
-        }
-
-        const quiz = new Quiz({
-            course: course._id,
-            ...value,
-            published: false,
-        });
-        await quiz.save();
-
-        await logActivity({
-            userId: req.user?._id,
-            action: "quiz_created",
-            details: `Quiz created: "${quiz.title}" for course "${course.title}"`,
-        });
-
-        
-        return res.status(201).json({ quiz });
-    } catch (error) {
-        console.error("Quiz creation error:", error);
-        return res.status(500).json({
-            errMsg: "Internal server error while creating quiz",
-            error: error instanceof Error ? error.message : "Unknown error",
-        });
-    }
-};
 
 const addQuestionSchema = Joi.object({
     prompt: Joi.string().min(3).required(),
@@ -573,6 +512,11 @@ const updateQuizSchema = Joi.object({
         }
     }
 
+    // S1-4: openAt must be strictly in the future (only check if updating openAt)
+    if (value.openAt && new Date(value.openAt) <= new Date()) {
+        throw new Error("openAt must be in the future");
+    }
+
     return value;
 });
 
@@ -682,6 +626,9 @@ const updateQuiz = async (req: AuthRequest, res: Response) => {
         if (value.gradingMode !== undefined) {
             quiz.gradingMode = value.gradingMode;
         }
+        if (value.questionsPerAttempt !== undefined) {
+            quiz.questionsPerAttempt = value.questionsPerAttempt;
+        }
         await quiz.save();
         return res.status(200).json({ quiz });
     } catch (error) {
@@ -716,8 +663,9 @@ const deleteQuiz = async (req: AuthRequest, res: Response) => {
                 .json({ errMsg: "forbidden - you do not own this course" });
         }
 
-        // Delete all associated questions first
+        // Delete all associated questions and attempts first
         await Question.deleteMany({ quiz: quiz._id });
+        await Attempt.deleteMany({ quiz: quiz._id });
 
         // Delete the quiz itself
         const deletedQuiz = await Quiz.findByIdAndDelete(quizId);
@@ -732,11 +680,19 @@ const deleteQuiz = async (req: AuthRequest, res: Response) => {
     }
 };
 
+/**
+ * Unified quiz creation handler — accepts courseId from route params
+ * (POST /:id/quizzes) or request body (POST /), eliminating the
+ * redundant createQuiz function (S1-1 consolidation).
+ */
 const createQuizFromBody = async (req: AuthRequest, res: Response) => {
     try {
-        const { courseId, ...payload } = req.body || {};
+        // Support both param-style (/:id/quizzes) and body-style (/) courseId
+        const courseId = req.params.id || req.body.courseId;
         if (!courseId)
             return res.status(400).json({ errMsg: "invalid course id" });
+
+        const { courseId: _unused, ...payload } = req.body || {};
         const { error, value } = createQuizSchema.validate(payload);
         if (error) {
             return res
@@ -754,6 +710,13 @@ const createQuizFromBody = async (req: AuthRequest, res: Response) => {
             ...value,
             published: false,
         });
+
+        await logActivity({
+            userId: req.user?._id,
+            action: "quiz_created",
+            details: `Quiz created: "${quiz.title}" for course "${course.title}"`,
+        });
+
         return res.status(201).json({ quiz });
     } catch (error) {
         console.error(error instanceof Error ? error.message : error);
@@ -916,7 +879,6 @@ const generateQuestionsWithAI = async (req: AuthRequest, res: Response) => {
 };
 
 export {
-    createQuiz,
     createQuizFromBody,
     addQuestion,
     addQuestionViaBody,

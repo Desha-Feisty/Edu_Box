@@ -32,6 +32,7 @@ const adminLinks = [
 const teacherLinks = [
     { to: "/teacher", icon: Home, label: "Home", id: "home" },
     { to: "/teacher/courses", icon: BookOpen, label: "My Courses", id: "courses" },
+    { to: "/teacher/chats", icon: MessageSquare, label: "Chats", id: "chats" },
     { to: "/teacher/analytics", icon: BarChart3, label: "Analytics", id: "analytics" },
     { to: "/leaderboard", icon: Trophy, label: "Leaderboard", id: "leaderboard" },
     { to: "/settings", icon: Settings, label: "Settings", id: "settings" },

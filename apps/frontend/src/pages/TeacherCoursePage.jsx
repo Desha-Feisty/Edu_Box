@@ -24,6 +24,7 @@ import CourseStudentsTab from "../components/teacher/CourseStudentsTab";
 import CourseGradesTab from "../components/teacher/CourseGradesTab";
 import CourseCommunityTab from "../components/teacher/CourseCommunityTab";
 import CourseEventsTab from "../components/teacher/CourseEventsTab";
+import TeacherChatTab from "../components/teacher/TeacherChatTab";
 
 function TeacherCoursePage() {
     const { id } = useParams();
@@ -326,6 +327,11 @@ function TeacherCoursePage() {
                             label: "Community Notes",
                             icon: MessageSquare,
                         },
+                        {
+                            id: "chat",
+                            label: "Chat",
+                            icon: MessageSquare,
+                        },
                     ].map(({ id: tabId, label, icon: TabIcon }) => (
                         <button
                             key={tabId}
@@ -410,6 +416,8 @@ function TeacherCoursePage() {
                         courseNotes={courseNotes}
                     />
                 )}
+
+                {activeTab === "chat" && <TeacherChatTab />}
             </main>
 
             {chatOpen && chatCourseId && chatPeerId && (

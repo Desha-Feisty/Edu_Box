@@ -117,19 +117,17 @@ const startAttempt = async (req: AuthRequest, res: Response) => {
         if (activeAttempt) {
             console.log(`[startAttempt] Resuming existing active attempt ${activeAttempt._id} for user ${req.user._id}, quiz ${quiz._id}`);
             
-            // Get all questions and apply random selection if needed
-            let allQuestions = await Question.find({ quiz: quiz._id })
-                .sort({ orderIndex: 1 })
-                .lean();
-            
-            let questions = allQuestions;
-            if (quiz.questionsPerAttempt && quiz.questionsPerAttempt < allQuestions.length) {
-                questions = selectRandomQuestions(
-                    allQuestions, 
-                    quiz.questionsPerAttempt, 
-                    `${req.user._id}-${activeAttempt._id}`
-                );
-            }
+            // Use the attempt's own responses as the source of truth for questions.
+            // This snapshots the question set at attempt-creation time and prevents
+            // mid-attempt changes to questionsPerAttempt from truncating the student's view.
+            const questionIds = activeAttempt.responses.map((r: { question: any }) => r.question);
+            let questions = questionIds.length > 0
+                ? await Question.find({ _id: { $in: questionIds } })
+                    .sort({ orderIndex: 1 })
+                    .lean()
+                : await Question.find({ quiz: quiz._id })
+                    .sort({ orderIndex: 1 })
+                    .lean();
             
             return res.status(200).json({
                 attemptId: activeAttempt._id,
@@ -172,7 +170,7 @@ const startAttempt = async (req: AuthRequest, res: Response) => {
         
         // Select random subset if questionsPerAttempt is set
         let questions = allQuestions;
-        if (quiz.questionsPerAttempt && quiz.questionsPerAttempt < allQuestions.length) {
+        if (typeof quiz.questionsPerAttempt === "number" && quiz.questionsPerAttempt > 0 && quiz.questionsPerAttempt < allQuestions.length) {
             questions = selectRandomQuestions(
                 allQuestions, 
                 quiz.questionsPerAttempt, 
@@ -313,6 +311,10 @@ const submitAttempt = async (req: AuthRequest, res: Response) => {
             return res.status(404).json({ error: "Attempt not found" });
         if (attempt.user.toString() !== req.user?._id)
             return res.status(403).json({ error: "Forbidden" });
+        // S6: Prevent double-submission — reject if already submitted/graded/expired
+        if (attempt.status && attempt.status !== "inProgress") {
+            return res.status(400).json({ error: "Attempt is already submitted" });
+        }
         const now = dayjs();
         const isLate = now.isAfter(dayjs(attempt.endAt));
 

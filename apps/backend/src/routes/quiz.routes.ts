@@ -27,7 +27,7 @@ router.post(
     "/:id/quizzes",
     authMiddleware,
     requireRole("teacher"),
-    quizController.createQuiz,
+    quizController.createQuizFromBody,
 );
 router.post(
     "/",
