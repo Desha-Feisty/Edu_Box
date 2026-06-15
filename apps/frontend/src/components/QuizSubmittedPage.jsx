@@ -16,6 +16,7 @@ function QuizSubmittedPage() {
 
     // S3-5: Fall back to sessionStorage or API fetch when state is lost on refresh
     useEffect(() => {
+        const controller = new AbortController();
         const stateEndAt = location.state?.quizEndAt;
         if (stateEndAt) {
             sessionStorage.setItem("quizEndAt", stateEndAt);
@@ -29,6 +30,7 @@ function QuizSubmittedPage() {
                 setIsLoading(true);
                 fetch(`/api/attempts/${attemptId}`, {
                     headers: { Authorization: `Bearer ${token}` },
+                    signal: controller.signal,
                 })
                     .then((r) => r.json())
                     .then((data) => {
@@ -44,6 +46,7 @@ function QuizSubmittedPage() {
                     .finally(() => setIsLoading(false));
             }
         }
+        return () => controller.abort();
     }, [location.state, attemptId, token]);
 
     useEffect(() => {

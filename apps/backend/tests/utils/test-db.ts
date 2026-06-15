@@ -37,13 +37,13 @@ function getTestMongoUri(): string {
     if (originalUri) {
         // Replace the database name in the URI to use a test DB
         // e.g., mongodb+srv://.../smartschool?... → mongodb+srv://.../test_edubox_<rand>?...
-        const replaced = originalUri.replace(/\/\w+\?/, `/${dbName}?`);
+        const replaced = originalUri.replace(/\/[^/?]+\?/, `/${dbName}?`);
         return replaced;
     }
 
     if (fallbackUri) {
         // Use fallback but with test database name
-        return fallbackUri.replace(/\/\w+$/, `/${dbName}`);
+        return fallbackUri.replace(/\/[^/]+$/, `/${dbName}`);
     }
 
     return `mongodb://localhost:27017/${dbName}`;
@@ -51,7 +51,6 @@ function getTestMongoUri(): string {
 
 export async function setupTestDB(): Promise<void> {
     instanceCount++;
-
     if (mongoose.connection.readyState === 1) return;
 
     const uri = getTestMongoUri();

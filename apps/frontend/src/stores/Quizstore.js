@@ -108,6 +108,11 @@ const useQuizStore = create((set) => ({
         try {
             set({ errMsg: null });
             const token = useAuthStore.getState().token;
+            if (!token) {
+                const errMsg = "Not authenticated. Please log in again.";
+                set({ errMsg });
+                throw new Error(errMsg);
+            }
             const response = await axios.get(`/api/quizzes/${quizId}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });

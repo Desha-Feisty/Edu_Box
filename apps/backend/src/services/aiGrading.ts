@@ -108,7 +108,7 @@ Respond ONLY with JSON: {"score": <0-${maxPoints}>, "feedback": "<feedback>"}`;
             try {
                 // Use the full prompt for the first attempt, simplified for retries
                 const activePrompt = attempt === 0 ? prompt : simplifiedPrompt;
-                const result = await model.generateContent(activePrompt);
+                const result = await model.generateContent(activePrompt, { signal: controller.signal });
 
                 const text = result.response.text().trim();
 

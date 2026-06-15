@@ -229,7 +229,6 @@ function StudentQuizPage() {
         const timer = setTimeout(() => {
             const next = gracePeriod - 1;
             if (next <= 0) {
-                setIsSubmitted(true);
                 handleAutoSubmit();
             } else {
                 setGracePeriod(next);
@@ -359,9 +358,8 @@ function StudentQuizPage() {
                                 : undefined
                         }
                         onTimeUp={() => {
-                            if (!isSubmitting && !isSubmitted) {
-                                setIsSubmitted(true);
-                                handleAutoSubmit();
+                            if (!isSubmitting && !isSubmitted && gracePeriod === null) {
+                                setGracePeriod(15);
                             }
                         }}
                         showControls={false}

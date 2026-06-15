@@ -46,6 +46,7 @@ function TeacherChatTab({ standalone = false }) {
             setSelectedChatId(conversationList[0].id);
             setOpenChats([
                 {
+                    id: conversationList[0].id,
                     courseId: conversationList[0].courseId,
                     peerId: conversationList[0].peerId,
                     peerName: conversationList[0].peerName,
@@ -73,6 +74,7 @@ function TeacherChatTab({ standalone = false }) {
             return [
                 ...prev,
                 {
+                    id: conversation.id,
                     courseId: conversation.courseId,
                     peerId: conversation.peerId,
                     peerName: conversation.peerName,
@@ -103,38 +105,23 @@ function TeacherChatTab({ standalone = false }) {
         });
     }, []);
 
-    const closeChat = useCallback(
-        (courseId, peerId) => {
-            const chatId = `${courseId}_${peerId}`;
-            setOpenChats((prev) =>
-                prev.filter(
-                    (c) =>
-                        !(c.courseId === courseId && c.peerId === peerId),
-                ),
-            );
-            setOpenChats((current) => {
-                if (selectedChatId === chatId) {
-                    const remaining = current.filter(
-                        (c) =>
-                            !(c.courseId === courseId && c.peerId === peerId),
-                    );
-                    // Use setTimeout to avoid setState-in-setState warning
-                    setTimeout(() => {
-                        setSelectedChatId(
-                            remaining.length > 0
-                                ? `${remaining[0].courseId}_${remaining[0].peerId}`
-                                : null,
-                        );
-                    }, 0);
-                }
-                return current;
-            });
-        },
-        [selectedChatId],
-    );
+    const closeChat = useCallback((courseId, peerId) => {
+        setOpenChats((prev) =>
+            prev.filter((c) => !(c.courseId === courseId && c.peerId === peerId)),
+        );
+    }, []);
+
+    // Auto-select next chat when the currently selected one is closed
+    useEffect(() => {
+        if (!selectedChatId) return;
+        const stillOpen = openChats.some((c) => c.id === selectedChatId);
+        if (!stillOpen) {
+            setSelectedChatId(openChats.length > 0 ? openChats[0].id : null);
+        }
+    }, [openChats, selectedChatId]);
 
     const selectedChat = openChats.find(
-        (c) => selectedChatId === `${c.courseId}_${c.peerId}`,
+        (c) => selectedChatId === c.id,
     );
 
     const isLoading = initialLoading || recentChatsLoading;

@@ -203,7 +203,11 @@ export const createQuestionSchema = Joi.object({
             text: Joi.string().min(1).max(500).required(),
             isCorrect: Joi.boolean().optional(),
         }))
-        .optional(),
+        .when("questionType", {
+            is: "written",
+            then: Joi.optional(),
+            otherwise: Joi.array().min(2).required(),
+        }),
     sampleAnswer: Joi.string()
         .max(5000)
         .optional(),

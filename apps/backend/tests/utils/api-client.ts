@@ -1,6 +1,6 @@
 import request from "supertest";
 import express from "express";
-import type { TestUser } from "./auth-helpers.js";
+import { generateTestToken, type TestUser } from "./auth-helpers.js";
 
 export function createTestApp(): express.Express {
     const app = express();
@@ -14,17 +14,6 @@ export function authenticatedRequest(
 ): request.Test {
     const token = generateTestToken(user);
     return request(app).set("Authorization", `Bearer ${token}`);
-}
-
-import jwt from "jsonwebtoken";
-
-function generateTestToken(user: TestUser): string {
-    const secret = process.env.JWT_SECRET || "test-secret";
-    return jwt.sign(
-        { _id: user._id, role: user.role },
-        secret,
-        { expiresIn: "1h" }
-    );
 }
 
 export function expectSuccess(response: request.Response, status = 200): void {

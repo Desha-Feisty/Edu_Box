@@ -4,21 +4,34 @@
  * Verifies that deleting a quiz also deletes all associated attempts (P0).
  */
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import express from "express";
+import request from "supertest";
 import { setupTestDB, teardownTestDB } from "../utils/test-db.js";
-import { createTestUser } from "../utils/auth-helpers.js";
-import Types from "mongoose";
+import { createTestUser, generateTestToken } from "../utils/auth-helpers.js";
+import { Types } from "mongoose";
 import Quiz from "../../src/models/quiz.js";
 import Attempt from "../../src/models/attempt.js";
 import Course from "../../src/models/course.js";
+import User from "../../src/models/user.js";
 
 describe("S3-2: Delete Quiz Cascade", () => {
     let teacherId: string;
     let courseId: string;
+    let teacherToken: string;
 
     beforeAll(async () => {
         await setupTestDB();
         const teacher = createTestUser({ role: "teacher" });
         teacherId = teacher._id;
+        // Create a real user in DB so course population works in the controller
+        await User.create({
+            _id: teacherId,
+            name: teacher.name,
+            email: teacher.email,
+            password: "password123",
+            role: "teacher",
+        });
+        teacherToken = generateTestToken(teacher);
         const course = await Course.create({
             title: "Test Course",
             description: "For cascade tests",
@@ -59,10 +72,18 @@ describe("S3-2: Delete Quiz Cascade", () => {
         const beforeCount = await Attempt.countDocuments({ quiz: quiz._id });
         expect(beforeCount).toBe(2);
 
-        // Cascade: delete attempts, questions, then the quiz
-        await Attempt.deleteMany({ quiz: quiz._id });
-        await Quiz.findByIdAndDelete(quiz._id);
+        // Delete quiz via API endpoint to trigger the controller's cascade logic
+        const app = express();
+        app.use(express.json());
+        const { default: quizRoutes } = await import("../../src/routes/quiz.routes.js");
+        app.use("/api/quizzes", quizRoutes);
 
+        await request(app)
+            .delete(`/api/quizzes/${quiz._id}`)
+            .set("Authorization", `Bearer ${teacherToken}`)
+            .expect(200);
+
+        // Verify attempts are automatically deleted via cascade
         const afterCount = await Attempt.countDocuments({ quiz: quiz._id });
         expect(afterCount).toBe(0);
     });
