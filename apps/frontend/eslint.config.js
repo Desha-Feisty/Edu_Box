@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import pluginReact from 'eslint-plugin-react'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
@@ -10,6 +11,7 @@ export default defineConfig([
     files: ['**/*.{js,jsx}'],
     extends: [
       js.configs.recommended,
+      pluginReact.configs.flat.recommended,
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
@@ -34,6 +36,12 @@ export default defineConfig([
       }],
       // Disable strict set-state-in-effect rule - common React pattern
       'react-hooks/set-state-in-effect': 'off',
+      // Disable react-in-jsx-scope - not needed with new JSX transform (React 17+)
+      'react/react-in-jsx-scope': 'off',
+      // Disable prop-types - project uses TypeScript/JS without PropTypes
+      'react/prop-types': 'off',
+      // Disable no-unescaped-entities - style preference, not a bug
+      'react/no-unescaped-entities': 'off',
     },
   },
 ])

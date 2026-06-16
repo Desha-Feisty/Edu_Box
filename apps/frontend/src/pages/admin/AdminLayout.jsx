@@ -154,7 +154,7 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
                     { label: "Total Quizzes", value: stats.totalQuizzes, icon: Activity, color: "amber" },
                     { label: "Quizzes Solved", value: stats.completedAttempts, icon: BarChart3, color: "purple" },
                 ].map((stat, i) => (
-                    <div key={i} className={`glass-panel border-l-4 border-l-${stat.color}-500 p-6 relative overflow-hidden group`}>
+                    <div key={i} className={`bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] border-l-4 border-l-${stat.color}-500 p-6 relative overflow-hidden group`}>
                         <div className="flex items-center justify-between mb-4">
                             <div className={`p-3 bg-${stat.color}-500/10 rounded-2xl group-hover:scale-110 transition-transform`}>
                                 <stat.icon className={`w-6 h-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
@@ -168,7 +168,7 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
 
             {/* Recent Activity / Secondary Stats */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="glass-panel p-6">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                     <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-blue-500" />
                         Platform Pulse
@@ -200,7 +200,7 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
                         </div>
                     </div>
                 </div>
-                <div className="glass-panel p-6 flex flex-col justify-center items-center text-center space-y-4 bg-gradient-to-br from-blue-600/5 to-purple-600/5">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 flex flex-col justify-center items-center text-center space-y-4 bg-gradient-to-br from-brand-600/5 to-brand-800/5">
                     {systemHealth ? (
                         <>
                             <div className={`w-20 h-20 rounded-full flex items-center justify-center ${systemHealth.health.status === "healthy" ? "bg-emerald-100 dark:bg-emerald-900/40" : "bg-amber-100 dark:bg-amber-900/40"}`}>
@@ -240,7 +240,7 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
                             <p className="text-slate-500 dark:text-slate-400 max-w-sm">Fetching system status...</p>
                         </>
                     )}
-                    <button onClick={() => window.location.href = '/admin/users'} className="btn btn-primary rounded-xl px-12 mt-4 shadow-lg shadow-blue-500/30"> Manage Users </button>
+                    <button onClick={() => window.location.href = '/admin/users'} className="btn-brand px-12 mt-4"> Manage Users </button>
                 </div>
             </div>
         </div>

@@ -5,59 +5,55 @@
 
 @theme {
     --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-    
-    /* Material Design 3 Color Tokens */
-    --color-md-primary: #6750A4;
-    --color-md-on-primary: #FFFFFF;
-    --color-md-primary-container: #EADDFF;
-    --color-md-on-primary-container: #21005D;
-    
-    --color-md-secondary: #625B71;
-    --color-md-on-secondary: #FFFFFF;
-    --color-md-secondary-container: #E8DEF8;
-    --color-md-on-secondary-container: #1D192B;
-    
-    --color-md-tertiary: #7D5260;
-    --color-md-on-tertiary: #FFFFFF;
-    --color-md-tertiary-container: #FFD8E4;
-    --color-md-on-tertiary-container: #31111D;
-    
-    --color-md-error: #B3261E;
-    --color-md-on-error: #FFFFFF;
-    --color-md-error-container: #F9DEDC;
-    --color-md-on-error-container: #410E0B;
-    
-    --color-md-background: #FFFBFE;
-    --color-md-on-background: #1C1B1F;
-    --color-md-surface: #FFFBFE;
-    --color-md-on-surface: #1C1B1F;
-    --color-md-surface-variant: #E7E0EC;
-    --color-md-on-surface-variant: #49454F;
-    
-    --color-md-outline: #79747E;
-    --color-md-outline-variant: #CAC4D0;
-    
-    /* Extended surface colors */
-    --color-md-surface-dim: #F3EDF7;
-    --color-md-surface-bright: #FFFFFF;
-    --color-md-surface-container: #F3EDF7;
-    --color-md-surface-container-high: #ECE6F0;
-    --color-md-surface-container-highest: #E4E0E9;
-    
-    /* Elevation shadows */
-    --shadow-md-1: 0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 2px rgba(0,0,0,0.15);
-    --shadow-md-2: 0px 1px 2px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
-    --shadow-md-3: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 2px rgba(0,0,0,0.15);
-    --shadow-md-4: 0px 6px 10px 4px rgba(0,0,0,0.15), 0px 2px 3px 2px rgba(0,0,0,0.15);
-    --shadow-md-5: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 2px rgba(0,0,0,0.15);
-    
-    /* Surface tones */
-    --color-md-surface-dark: #1C1B1F;
-    --color-md-surface-container-dark: #2B2930;
-    --color-md-surface-container-high-dark: #36343B;
-    --color-md-surface-container-highest-dark: #484649;
-    
-    /* Animation values */
+
+    /* ── Brand System ─────────────────────────────────────────────── */
+    --color-brand-50:  #faf5ff;
+    --color-brand-100: #f3e8ff;
+    --color-brand-200: #e9d5ff;
+    --color-brand-300: #d8b4fe;
+    --color-brand-400: #c084fc;
+    --color-brand-500: #a855f7;
+    --color-brand-600: #9333ea;
+    --color-brand-700: #7c3aed;
+    --color-brand-800: #6d28d9;
+    --color-brand-900: #581c87;
+
+    /* ── Accent (teal) ────────────────────────────────────────────── */
+    --color-accent-50:  #ecfeff;
+    --color-accent-100: #ccfbf1;
+    --color-accent-200: #99f6e4;
+    --color-accent-300: #5eead4;
+    --color-accent-400: #2dd4bf;
+    --color-accent-500: #14b8a6;
+    --color-accent-600: #0d9488;
+    --color-accent-700: #0f766e;
+    --color-accent-800: #115e59;
+    --color-accent-900: #134e4a;
+
+    /* ── Brand Gradient (used via bg-gradient) ────────────────────── */
+    --gradient-brand: linear-gradient(135deg, #7c3aed, #a855f7);
+    --gradient-brand-reverse: linear-gradient(135deg, #a855f7, #7c3aed);
+    --gradient-hero: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    /* ── Typography Scale ─────────────────────────────────────────── */
+    --text-xs:   0.75rem;
+    --text-sm:   0.8125rem;
+    --text-base: 1rem;
+    --text-lg:   1.125rem;
+    --text-xl:   1.3125rem;
+    --text-2xl:  1.625rem;
+    --text-3xl:  2rem;
+    --text-4xl:  2.5rem;
+    --text-5xl:  3.25rem;
+
+    /* ── Theme Transition ─────────────────────────────────────────── */
+    --default-transition-duration: 200ms;
+    --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* ── Animation ────────────────────────────────────────────────── */
+    --animate-float: float 6s ease-in-out infinite;
+    --animate-shimmer: shimmer 2.5s ease-in-out infinite;
+    --animate-gradient-xy: gradientXY 8s ease infinite;
     --animate-fade-in-scale: fadeInScale 0.2s ease-out;
     --animate-fade-in-up: fadeInUp 0.3s ease-out;
     --animate-fade-in: fadeIn 0.2s ease-out;
@@ -65,7 +61,77 @@
     --animate-slide-in-up: slideInUp 0.3s ease-out;
     --animate-pulse-soft: pulseSoft 2s ease-in-out infinite;
     --animate-spin-slow: spin 2s linear infinite;
+    --animate-accordion-up: accordionUp 0.2s ease-out;
+    --animate-accordion-down: accordionDown 0.2s ease-out;
+
+    /* ── Material Design 3 Color Tokens (kept for existing fullcalendar + components) ── */
+    --color-md-primary: #6750A4;
+    --color-md-on-primary: #FFFFFF;
+    --color-md-primary-container: #EADDFF;
+    --color-md-on-primary-container: #21005D;
+    --color-md-secondary: #625B71;
+    --color-md-on-secondary: #FFFFFF;
+    --color-md-secondary-container: #E8DEF8;
+    --color-md-on-secondary-container: #1D192B;
+    --color-md-tertiary: #7D5260;
+    --color-md-on-tertiary: #FFFFFF;
+    --color-md-tertiary-container: #FFD8E4;
+    --color-md-on-tertiary-container: #31111D;
+    --color-md-error: #B3261E;
+    --color-md-on-error: #FFFFFF;
+    --color-md-error-container: #F9DEDC;
+    --color-md-on-error-container: #410E0B;
+    --color-md-background: #FFFBFE;
+    --color-md-on-background: #1C1B1F;
+    --color-md-surface: #FFFBFE;
+    --color-md-on-surface: #1C1B1F;
+    --color-md-surface-variant: #E7E0EC;
+    --color-md-on-surface-variant: #49454F;
+    --color-md-outline: #79747E;
+    --color-md-outline-variant: #CAC4D0;
+    --color-md-surface-dim: #F3EDF7;
+    --color-md-surface-bright: #FFFFFF;
+    --color-md-surface-container: #F3EDF7;
+    --color-md-surface-container-high: #ECE6F0;
+    --color-md-surface-container-highest: #E4E0E9;
+    --color-md-surface-dark: #1C1B1F;
+    --color-md-surface-container-dark: #2B2930;
+    --color-md-surface-container-high-dark: #36343B;
+    --color-md-surface-container-highest-dark: #484649;
+    --shadow-md-1: 0px 1px 2px rgba(0,0,0,0.3), 0px 1px 3px 2px rgba(0,0,0,0.15);
+    --shadow-md-2: 0px 1px 2px rgba(0,0,0,0.3), 0px 2px 6px 2px rgba(0,0,0,0.15);
+    --shadow-md-3: 0px 4px 8px 3px rgba(0,0,0,0.15), 0px 1px 3px 2px rgba(0,0,0,0.15);
+    --shadow-md-4: 0px 6px 10px 4px rgba(0,0,0,0.15), 0px 2px 3px 2px rgba(0,0,0,0.15);
+    --shadow-md-5: 0px 8px 12px 6px rgba(0,0,0,0.15), 0px 4px 4px 2px rgba(0,0,0,0.15);
 }
+
+@keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-12px); }
+}
+
+@keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes gradientXY {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes accordionUp {
+    from { height: var(--radix-accordion-content-height); }
+    to   { height: 0; }
+}
+
+@keyframes accordionDown {
+    from { height: 0; }
+    to   { height: var(--radix-accordion-content-height); }
+}
+
+
 
 @keyframes fadeInScale {
     from {
@@ -135,6 +201,48 @@
     
     .glass-card {
         @apply relative bg-white/95 dark:bg-base-200/80 backdrop-blur-lg border border-slate-200/80 dark:border-white/10 shadow-lg shadow-slate-200/60 dark:shadow-black/20 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden;
+    }
+
+    /* ── Enhanced Glass (heavier blur + stronger backdrop for auth cards) ── */
+    .glass-strong {
+        @apply relative bg-white/80 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/40 dark:border-white/[0.08] shadow-2xl shadow-slate-300/30 dark:shadow-black/40 rounded-3xl overflow-hidden;
+    }
+
+    /* ── Brand Gradient text ──────────────────────────────────────── */
+    .text-brand-gradient {
+        @apply text-transparent bg-clip-text bg-gradient-to-r from-brand-700 to-brand-500;
+    }
+
+    /* ── Brand Button ─────────────────────────────────────────────── */
+    .btn-brand {
+        @apply inline-flex items-center justify-center gap-2 font-semibold border-none rounded-xl px-6 py-3
+               bg-gradient-to-r from-brand-700 to-brand-500
+               text-white shadow-lg shadow-brand-700/25
+               hover:from-brand-800 hover:to-brand-600 hover:shadow-xl hover:shadow-brand-700/30
+               active:scale-[0.97] active:from-brand-900 active:to-brand-700
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100
+               transition-all duration-150 ease-out;
+    }
+    .btn-brand-outline {
+        @apply inline-flex items-center justify-center gap-2 font-semibold rounded-xl px-6 py-3
+               border-2 border-brand-500/60 dark:border-brand-400/40
+               text-brand-700 dark:text-brand-300
+               bg-transparent
+               hover:bg-brand-50/80 dark:hover:bg-brand-900/20 hover:border-brand-600 dark:hover:border-brand-400/60
+               active:scale-[0.97]
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+               disabled:opacity-50 disabled:cursor-not-allowed
+               transition-all duration-150 ease-out;
+    }
+    .btn-ghost-neutral {
+        @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl px-4 py-2.5
+               text-slate-600 dark:text-slate-400
+               hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white
+               active:scale-[0.97]
+               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400
+               disabled:opacity-40 disabled:cursor-not-allowed
+               transition-all duration-150 ease-out;
     }
 
     /* Material Design 3 Elevated Card */

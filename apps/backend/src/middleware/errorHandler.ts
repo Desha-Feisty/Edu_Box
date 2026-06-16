@@ -65,6 +65,29 @@ export const errorHandler = (
         });
     }
 
+    // Handle Multer errors (file upload)
+    if (err.name === "MulterError") {
+        const messages: Record<string, string> = {
+            LIMIT_FILE_SIZE: "File too large. Maximum size is 10MB.",
+            LIMIT_UNEXPECTED_FILE: "Unexpected file field",
+            LIMIT_FIELD_KEY: "Invalid field name",
+        };
+        return res.status(400).json({
+            success: false,
+            error: messages[(err as any).code] || err.message,
+            message: messages[(err as any).code] || err.message,
+        });
+    }
+
+    // Handle custom file filter rejection
+    if (err.message?.includes("Only PDF, DOCX, and TXT")) {
+        return res.status(400).json({
+            success: false,
+            error: err.message,
+            message: err.message,
+        });
+    }
+
     // Handle JWT errors
     if (err.name === "JsonWebTokenError") {
         return res.status(401).json({

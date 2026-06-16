@@ -1,6 +1,7 @@
 import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { authMiddleware, requireRole } from "../middleware/auth.js";
+import { upload } from "../middleware/upload.js";
 import * as quizController from "../controllers/quiz.controller.js";
 import * as attemptController from "../controllers/attempt.controller.js";
 const router = Router();
@@ -67,6 +68,14 @@ router.post(
     authMiddleware,
     requireRole("teacher"),
     quizController.generateQuestionsWithAI,
+);
+router.post(
+    "/:id/questions/generate-from-file",
+    authMiddleware,
+    requireRole("teacher"),
+    writeLimiter,
+    upload.single("file"),
+    quizController.generateQuestionsFromFile,
 );
 router.get(
     "/:id/grades",

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import PageWrapper from "./layout/PageWrapper";
 import QuizTimer from "./quiz/QuizTimer";
+import { ConfirmDialog } from "./common/Modal";
 
 function StudentQuizPage() {
     const { attemptId } = useParams();
@@ -52,6 +53,7 @@ function StudentQuizPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [savingIndices, setSavingIndices] = useState(new Set());
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
     const [lastSavedTimes, setLastSavedTimes] = useState({}); // { questionId: Date }
     
     // Use a ref to track if we've initiated the fetch for this attemptId
@@ -212,16 +214,12 @@ function StudentQuizPage() {
                 setShowWarning(true);
                 toast.error("⏰ Only 5 minutes remaining!");
             }
-
-            if (remainingSeconds <= 0 && !isSubmitting && !isSubmitted && gracePeriod === null) {
-                setGracePeriod(15); // S5: start 15-second grace countdown
-            }
         };
 
         updateTimer();
         const interval = setInterval(updateTimer, 1000);
         return () => clearInterval(interval);
-    }, [currentAttempt?.endAt, showWarning, handleAutoSubmit, isSubmitting, isSubmitted, gracePeriod]);
+    }, [currentAttempt?.endAt, showWarning]);
 
     // S5: Grace period countdown — auto-submits when grace reaches 0
     useEffect(() => {
@@ -236,6 +234,14 @@ function StudentQuizPage() {
         }, 1000);
         return () => clearTimeout(timer);
     }, [gracePeriod, handleAutoSubmit]);
+
+    // Block tab/refresh navigation while quiz is in progress
+    useEffect(() => {
+        if (currentAttempt?.status !== "inProgress" || isSubmitted || submissionLock.current) return;
+        const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
+        window.addEventListener("beforeunload", handler);
+        return () => window.removeEventListener("beforeunload", handler);
+    }, [currentAttempt?.status, isSubmitted]);
 
     const handleAnswerChange = useCallback(
         (questionId, choiceId, textAnswer) => {
@@ -726,14 +732,7 @@ function StudentQuizPage() {
                                             </div>
 
                                             <button
-                                                onClick={() => {
-                                                    if (!allQuestionsAnswered) {
-                                                        if (!window.confirm(
-                                                            `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? "s" : ""}. Submit anyway?`
-                                                        )) return;
-                                                    }
-                                                    handleAutoSubmit();
-                                                }}
+                                                onClick={() => setShowSubmitConfirm(true)}
                                                 disabled={isSubmitting || gracePeriod !== null}
                                                 className="btn btn-success gap-2"
                                             >
@@ -767,6 +766,24 @@ function StudentQuizPage() {
                     </div>
                 </div>
             </main>
+
+            {/* Submit Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={showSubmitConfirm}
+                onClose={() => setShowSubmitConfirm(false)}
+                onConfirm={() => {
+                    setShowSubmitConfirm(false);
+                    handleAutoSubmit();
+                }}
+                title="Submit Quiz"
+                message={
+                    allQuestionsAnswered
+                        ? `You have answered all ${answeredCount} questions. Submit your quiz?`
+                        : `You have ${unansweredCount} unanswered question${unansweredCount > 1 ? "s" : ""} out of ${attemptQuestions.length}. Submit anyway?`
+                }
+                confirmLabel="Submit"
+                variant="primary"
+            />
 
             {/* Attempt Error Toast */}
             {attemptError && (

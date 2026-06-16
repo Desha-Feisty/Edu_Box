@@ -13,8 +13,11 @@ import {
     CheckCircle,
     X,
     Sparkles,
+    Link,
+    Copy,
 } from "lucide-react";
 import PageWrapper from "../components/layout/PageWrapper";
+import { ConfirmDialog } from "../components/common/Modal";
 
 function QuizQuestionsPage() {
     const { id: quizId } = useParams();
@@ -26,6 +29,7 @@ function QuizQuestionsPage() {
         updateQuestion,
         deleteQuestion,
         generateAiQuestions,
+        generateFromFile,
         publishQuiz,
         unpublishQuiz,
         errMsg,
@@ -45,6 +49,10 @@ function QuizQuestionsPage() {
     const [aiQuestionType, setAiQuestionType] = useState("mcq_single");
     const [aiPoints, setAiPoints] = useState(1);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [aiSourceMode, setAiSourceMode] = useState("topic"); // "topic" | "file"
+    const [aiFile, setAiFile] = useState(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+    const [publishSuccess, setPublishSuccess] = useState(false);
 
     const [formData, setFormData] = useState({
         prompt: "",
@@ -90,7 +98,9 @@ function QuizQuestionsPage() {
         try {
             await publishQuiz(quizId);
             setQuizPublished(true);
+            setPublishSuccess(true);
             toast.success("Quiz published successfully");
+            setTimeout(() => setPublishSuccess(false), 8000);
         } catch (err) {
             toast.error(err.message || "Failed to publish quiz");
         }
@@ -198,16 +208,29 @@ function QuizQuestionsPage() {
 
     const handleAiGenerate = async (e) => {
         e.preventDefault();
-        if (!aiTopic.trim()) {
-            toast.error("Please enter a topic");
-            return;
-        }
         setIsGenerating(true);
         try {
-            await generateAiQuestions(quizId, aiTopic, aiCount, aiQuestionType, aiPoints);
-            toast.success(`Successfully generated ${aiCount} ${aiQuestionType === "written" ? "written" : "multiple choice"} questions!`);
+            if (aiSourceMode === "file") {
+                if (!aiFile) {
+                    toast.error("Please select a file");
+                    setIsGenerating(false);
+                    return;
+                }
+                await generateFromFile(quizId, aiFile, aiQuestionType, aiCount, aiPoints);
+                toast.success(`Successfully generated ${aiCount} ${aiQuestionType === "written" ? "written" : "multiple choice"} questions from file!`);
+            } else {
+                if (!aiTopic.trim()) {
+                    toast.error("Please enter a topic");
+                    setIsGenerating(false);
+                    return;
+                }
+                await generateAiQuestions(quizId, aiTopic, aiCount, aiQuestionType, aiPoints);
+                toast.success(`Successfully generated ${aiCount} ${aiQuestionType === "written" ? "written" : "multiple choice"} questions!`);
+            }
             setIsAiModalOpen(false);
             setAiTopic("");
+            setAiFile(null);
+            setAiSourceMode("topic");
             setAiQuestionType("mcq_single");
             setAiPoints(1);
             fetchQuestions();
@@ -216,6 +239,25 @@ function QuizQuestionsPage() {
             toast.error(errorMsg);
         } finally {
             setIsGenerating(false);
+        }
+    };
+
+    const handleFileChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const maxSize = 10 * 1024 * 1024;
+            if (file.size > maxSize) {
+                toast.error("File must be under 10MB");
+                e.target.value = "";
+                return;
+            }
+            const allowedTypes = ["application/pdf", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain"];
+            if (!allowedTypes.includes(file.type)) {
+                toast.error("Only PDF, DOCX, and TXT files are allowed");
+                e.target.value = "";
+                return;
+            }
+            setAiFile(file);
         }
     };
 
@@ -240,14 +282,19 @@ function QuizQuestionsPage() {
     };
 
     const handleDelete = async (questionId) => {
-        if (window.confirm("Are you sure you want to delete this question?")) {
-            try {
-                await deleteQuestion(questionId);
-                fetchQuestions();
-                toast.success("Question deleted successfully");
-            } catch {
-                toast.error("Failed to delete question");
-            }
+        setDeleteConfirmId(questionId);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deleteConfirmId) return;
+        try {
+            await deleteQuestion(deleteConfirmId);
+            fetchQuestions();
+            toast.success("Question deleted successfully");
+        } catch {
+            toast.error("Failed to delete question");
+        } finally {
+            setDeleteConfirmId(null);
         }
     };
 
@@ -275,12 +322,12 @@ function QuizQuestionsPage() {
                 )}
 
                 {/* Questions Header Card */}
-                <div className="glass-panel overflow-hidden mb-8 border border-white/40 dark:border-slate-700/50 shadow-xl shadow-blue-900/5 rounded-3xl">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mb-8 overflow-hidden">
                     <div className="p-8 relative">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-brand-700"></div>
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div>
-                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 mb-1">
+                                <div className="flex items-center gap-2 text-brand-600 dark:text-brand-400 mb-1">
                                     <button
                                         onClick={() => courseId ? navigate(`/teacher/course/${courseId}`) : navigate(-1)}
                                         className="btn btn-ghost btn-xs btn-circle dark:text-slate-300"
@@ -291,11 +338,25 @@ function QuizQuestionsPage() {
                                 </div>
                                 <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
                                     Quiz Content
+                                    <span className={`badge border-0 text-sm font-semibold ${
+                                        quizPublished
+                                            ? "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300"
+                                            : "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300"
+                                    }`}>
+                                        {quizPublished ? "Published" : "Draft"}
+                                    </span>
                                     <span className="badge badge-primary bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-0">{questions.length}</span>
                                 </h1>
                             </div>
                             {!isAdding && (
                                 <div className="flex flex-col sm:flex-row gap-3">
+                                    <button
+                                        onClick={() => navigate(`/teacher/quiz/create?editQuizId=${quizId}`)}
+                                        className="btn btn-ghost gap-2 rounded-xl"
+                                    >
+                                        <Edit className="w-5 h-5" />
+                                        Settings
+                                    </button>
                                     {!quizPublished ? (
                                         <button
                                             onClick={handlePublish}
@@ -316,13 +377,39 @@ function QuizQuestionsPage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Step 10: Publish success banner */}
+                        {publishSuccess && (
+                            <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl flex items-center justify-between flex-wrap gap-3 animate-in slide-in-from-top-2">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-green-500 flex items-center justify-center">
+                                        <CheckCircle className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-green-800 dark:text-green-200">Quiz is live!</p>
+                                        <p className="text-xs text-green-600 dark:text-green-400">Students can now access it during the scheduled window.</p>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/student/quizzes`;
+                                        navigator.clipboard.writeText(url);
+                                        toast.success("Quiz link copied to clipboard");
+                                    }}
+                                    className="btn btn-sm bg-green-600 hover:bg-green-500 text-white border-0 rounded-xl gap-2"
+                                >
+                                    <Copy className="w-4 h-4" />
+                                    Copy Quiz Link
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
 
                 {/* AI Generator Modal */}
                 {isAiModalOpen && (
-                    <div className="glass-panel overflow-hidden border border-purple-500/30 shadow-2xl shadow-purple-900/10 mb-8 animate-in slide-in-from-top-4 rounded-3xl relative">
-                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-fuchsia-500 to-purple-500"></div>
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mb-8 animate-in slide-in-from-top-4 overflow-hidden relative">
+                        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-500 to-accent-500"></div>
                         <div className="p-8">
                             <div className="flex justify-between items-center mb-6">
                                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -335,20 +422,84 @@ function QuizQuestionsPage() {
                             </div>
                             
                             <form onSubmit={handleAiGenerate} className="space-y-6">
-                                <div className="form-control">
-                                    <label className="label">
-                                        <span className="label-text font-semibold text-slate-700 dark:text-slate-300">
-                                            What should the questions be about?
-                                        </span>
-                                    </label>
-                                    <textarea
-                                        required
-                                        value={aiTopic}
-                                        onChange={(e) => setAiTopic(e.target.value)}
-                                        className="textarea h-32 bg-white/50 dark:bg-base-300/50 border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 rounded-xl text-lg resize-y"
-                                        placeholder="E.g., The history of the Roman Empire, Newton's Laws of Motion, or paste a block of text..."
-                                    />
+                                {/* Source Mode Tabs */}
+                                <div className="tabs tabs-box bg-slate-100/50 dark:bg-base-300/50 p-1 rounded-xl">
+                                    <button
+                                        type="button"
+                                        className={`tab flex-1 rounded-lg text-sm font-medium transition-all ${aiSourceMode === "topic" ? "bg-white dark:bg-base-200 shadow-sm text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
+                                        onClick={() => { setAiSourceMode("topic"); setAiFile(null); }}
+                                    >
+                                        ✏️ Topic Text
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`tab flex-1 rounded-lg text-sm font-medium transition-all ${aiSourceMode === "file" ? "bg-white dark:bg-base-200 shadow-sm text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:text-slate-700"}`}
+                                        onClick={() => { setAiSourceMode("file"); setAiTopic(""); }}
+                                    >
+                                        📄 Upload File
+                                    </button>
                                 </div>
+
+                                {aiSourceMode === "topic" ? (
+                                    <div className="form-control">
+                                        <label className="label">
+                                            <span className="label-text font-semibold text-slate-700 dark:text-slate-300">
+                                                What should the questions be about?
+                                            </span>
+                                        </label>
+                                        <textarea
+                                            required
+                                            value={aiTopic}
+                                            onChange={(e) => setAiTopic(e.target.value)}
+                                            className="textarea h-32 bg-white/50 dark:bg-base-300/50 border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 rounded-xl text-lg resize-y"
+                                            placeholder="E.g., The history of the Roman Empire, Newton's Laws of Motion, or paste a block of text..."
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="form-control">
+                                        <label className="label">
+                                            <span className="label-text font-semibold text-slate-700 dark:text-slate-300">
+                                                Upload a document
+                                            </span>
+                                        </label>
+                                        <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 text-center hover:border-fuchsia-400 dark:hover:border-fuchsia-500 transition-colors">
+                                            {aiFile ? (
+                                                <div className="space-y-3">
+                                                    <div className="text-4xl">📄</div>
+                                                    <p className="font-medium text-slate-900 dark:text-white truncate max-w-xs mx-auto">
+                                                        {aiFile.name}
+                                                    </p>
+                                                    <p className="text-sm text-slate-500">
+                                                        {(aiFile.size / 1024).toFixed(1)} KB
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => { setAiFile(null); }}
+                                                        className="btn btn-ghost btn-xs text-slate-500 hover:text-error"
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <label className="cursor-pointer block">
+                                                    <div className="text-4xl mb-3">📂</div>
+                                                    <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">
+                                                        Click to upload or drag & drop
+                                                    </p>
+                                                    <p className="text-sm text-slate-500">
+                                                        PDF, DOCX, or TXT (max 10MB)
+                                                    </p>
+                                                    <input
+                                                        type="file"
+                                                        accept=".pdf,.docx,.txt"
+                                                        onChange={handleFileChange}
+                                                        className="hidden"
+                                                    />
+                                                </label>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 {/* Question Type Selector */}
                                 <div className="form-control">
@@ -358,7 +509,7 @@ function QuizQuestionsPage() {
                                         </span>
                                     </label>
                                     <div className="flex gap-4">
-                                        <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${aiQuestionType === "mcq_single" ? "bg-purple-50/50 dark:bg-purple-900/10 border-purple-400 dark:border-purple-500/50" : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
+                                        <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${aiQuestionType === "mcq_single" ? "bg-brand-50/50 dark:bg-brand-900/10 border-brand-400 dark:border-brand-500/50" : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
                                             <input
                                                 type="radio"
                                                 name="aiQuestionType"
@@ -369,7 +520,7 @@ function QuizQuestionsPage() {
                                             />
                                             <span className="font-medium text-sm">Multiple Choice</span>
                                         </label>
-                                        <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${aiQuestionType === "written" ? "bg-purple-50/50 dark:bg-purple-900/10 border-purple-400 dark:border-purple-500/50" : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
+                                        <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${aiQuestionType === "written" ? "bg-brand-50/50 dark:bg-brand-900/10 border-brand-400 dark:border-brand-500/50" : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700 hover:border-slate-300"}`}>
                                             <input
                                                 type="radio"
                                                 name="aiQuestionType"
@@ -395,7 +546,7 @@ function QuizQuestionsPage() {
                                         min="1"
                                         max="20"
                                         value={aiCount}
-                                        onChange={(e) => setAiCount(parseInt(e.target.value))}
+                                        onChange={(e) => setAiCount(Math.max(1, Math.min(20, parseInt(e.target.value) || 5)))}
                                         className="input bg-white/50 dark:bg-base-300/50 border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 rounded-xl text-lg w-32 font-mono"
                                     />
                                 </div>
@@ -410,7 +561,7 @@ function QuizQuestionsPage() {
                                         min="1"
                                         max="10"
                                         value={aiPoints}
-                                        onChange={(e) => setAiPoints(parseInt(e.target.value))}
+                                        onChange={(e) => setAiPoints(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
                                         className="input bg-white/50 dark:bg-base-300/50 border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-fuchsia-500/50 rounded-xl text-lg w-32 font-mono"
                                     />
                                 </div>
@@ -441,7 +592,7 @@ function QuizQuestionsPage() {
 
                 {/* Add/Edit Form */}
                 {isAdding && (
-                    <div className="glass-panel overflow-hidden border border-white/40 dark:border-slate-700/50 shadow-xl mb-8 animate-in slide-in-from-top-4 rounded-3xl">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mb-8 animate-in slide-in-from-top-4 overflow-hidden">
                         <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500"></div>
                         <div className="p-8">
                             <h2 className="text-2xl font-bold mb-6 text-slate-900 dark:text-white flex items-center gap-2">
@@ -689,17 +840,17 @@ function QuizQuestionsPage() {
                             </button>
                             <button
                                 onClick={() => setIsAdding(true)}
-                                className="btn btn-primary shadow-lg shadow-blue-500/20 rounded-xl"
+                                className="btn-brand"
                             >
-                                <Plus className="w-5 h-5 mr-1" />
+                                <Plus className="w-5 h-4" />
                                 Add Question
                             </button>
                         </div>
                     )}
                     {questions.length === 0 && !isAdding ? (
-                        <div className="glass-panel border border-blue-200 dark:border-blue-900/50 bg-blue-50/50 dark:bg-blue-900/10">
+                        <div className="bg-brand-50/50 dark:bg-brand-900/10 rounded-2xl border border-brand-200 dark:border-brand-900/50">
                             <div className="p-12 text-center">
-                                <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/40 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-500">
+                                <div className="w-20 h-20 bg-brand-100 dark:bg-brand-900/40 rounded-full flex items-center justify-center mx-auto mb-6 text-brand-500">
                                     <Plus className="w-10 h-10" />
                                 </div>
                                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No questions yet</h3>
@@ -709,7 +860,7 @@ function QuizQuestionsPage() {
                                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-6">
                                     <button
                                         onClick={() => setIsAdding(true)}
-                                        className="btn btn-primary px-8 rounded-xl shadow-lg shadow-blue-500/20"
+                                        className="btn-brand px-8"
                                     >
                                         <Plus className="w-5 h-5 mr-1" />
                                         Add Question
@@ -814,6 +965,17 @@ function QuizQuestionsPage() {
                         ))
                     )}
                 </div>
+
+            {/* Delete Confirmation Modal */}
+            <ConfirmDialog
+                isOpen={deleteConfirmId !== null}
+                onClose={() => setDeleteConfirmId(null)}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Question"
+                message="Are you sure you want to delete this question? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+            />
             </main>
         </PageWrapper>
     );

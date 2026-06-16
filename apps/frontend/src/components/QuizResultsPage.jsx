@@ -180,7 +180,7 @@ function QuizResultsPage() {
         return (
             <PageWrapper>
                 <div className="min-h-[80vh] flex items-center justify-center">
-                    <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                    <span className="loading loading-spinner loading-lg text-brand-600"></span>
                 </div>
             </PageWrapper>
         );
@@ -190,13 +190,13 @@ function QuizResultsPage() {
         return (
             <PageWrapper>
                 <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
-                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center text-red-600 dark:text-red-400">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] w-full p-8 text-center text-red-600 dark:text-red-400">
                         <p className="text-xl font-bold mb-6">{error}</p>
                         <button
                             onClick={() => navigate("/student")}
-                            className="btn btn-primary gap-2"
+                            className="btn-brand"
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <ArrowLeft className="w-4 h-4" />
                             Back to Dashboard
                         </button>
                     </div>
@@ -209,15 +209,15 @@ function QuizResultsPage() {
         return (
             <PageWrapper>
                 <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
-                    <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] w-full p-8 text-center">
                         <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mb-6">
                             Results not found
                         </p>
                         <button
                             onClick={() => navigate("/student")}
-                            className="btn btn-primary gap-2"
+                            className="btn-brand"
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <ArrowLeft className="w-4 h-4" />
                             Back to Dashboard
                         </button>
                     </div>
@@ -232,7 +232,7 @@ function QuizResultsPage() {
                 <div className="max-w-4xl mx-auto space-y-8">
                     {/* Main Results Card */}
                     <div
-                        className={`glass-panel overflow-hidden border shadow-2xl relative rounded-3xl ${performanceData.borderColor} dark:border-slate-700/50`}
+                        className={`bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden relative ${performanceData.borderColor}`}
                     >
                         <div className={`absolute top-0 left-0 w-full h-2 ${performanceData.bgColor} dark:bg-opacity-20`}></div>
                         <div className="p-12 text-center relative z-10">
@@ -305,9 +305,9 @@ function QuizResultsPage() {
                                 </div>
                                 <div className="glass-card bg-white/60 dark:bg-base-300/60 rounded-2xl p-6 border border-white/40 dark:border-slate-700 hover:-translate-y-1 transition-transform">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <Clock className="w-6 h-6 text-blue-500" />
+                                        <Clock className="w-6 h-6 text-brand-500" />
                                     </div>
-                                    <p className="text-4xl font-black text-blue-600 dark:text-blue-400">
+                                    <p className="text-4xl font-black text-brand-600 dark:text-brand-400">
                                         {timeTaken !== null ? timeTaken : "--"}
                                     </p>
                                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-1">Minutes</p>
@@ -318,8 +318,8 @@ function QuizResultsPage() {
 
                 {/* Submission Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="glass-panel p-6 border border-white/40 dark:border-slate-700/50 shadow-lg rounded-2xl flex items-center gap-4">
-                        <div className="p-4 rounded-xl bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shrink-0">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 flex items-center gap-4">
+                        <div className="p-4 rounded-xl bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 shrink-0">
                             <Calendar className="w-8 h-8" />
                         </div>
                         <div>
@@ -333,8 +333,8 @@ function QuizResultsPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="glass-panel p-6 border border-white/40 dark:border-slate-700/50 shadow-lg rounded-2xl flex items-center gap-4">
-                        <div className="p-4 rounded-xl bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400 shrink-0">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 flex items-center gap-4">
+                        <div className="p-4 rounded-xl bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 shrink-0">
                             <Clock className="w-8 h-8" />
                         </div>
                         <div>
@@ -352,10 +352,10 @@ function QuizResultsPage() {
 
                 {/* Answer Breakdown */}
                 {attempt.responses && attempt.responses.length > 0 && (
-                    <div className="glass-panel overflow-hidden border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl mt-8">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mt-8 overflow-hidden">
                         <div className="p-8">
                             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3">
-                                <div className="p-2 bg-blue-100 dark:bg-blue-900/40 rounded-lg text-blue-600 dark:text-blue-400">
+                                <div className="p-2 bg-brand-100 dark:bg-brand-900/40 rounded-lg text-brand-600 dark:text-brand-400">
                                     <TrendingUp className="w-6 h-6" />
                                 </div>
                                 Detailed Breakdown
@@ -465,9 +465,9 @@ function QuizResultsPage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mt-12 pb-12">
                     <button
                         onClick={() => navigate("/student")}
-                        className="btn btn-primary btn-lg gap-2 shadow-lg shadow-blue-500/20 hover:-translate-y-0.5 rounded-2xl"
+                        className="btn-brand btn-lg px-8"
                     >
-                        <Home className="w-5 h-5" />
+                        <Home className="w-5 h-4" />
                         Back to Dashboard
                     </button>
                     <button

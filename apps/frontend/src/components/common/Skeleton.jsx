@@ -38,7 +38,7 @@ export function SkeletonList({ count = 3 }) {
 
 export function SkeletonTable({ rows = 5, cols = 4 }) {
     return (
-        <div className="glass-panel overflow-hidden">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
             <div className="grid gap-4 p-4" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
                 {Array.from({ length: cols }).map((_, i) => (
                     <Skeleton key={`header-${i}`} className="h-6" />
@@ -53,7 +53,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }) {
 
 export function SkeletonForm() {
     return (
-        <div className="glass-panel p-6 space-y-4">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 space-y-4">
             <div>
                 <Skeleton className="h-4 w-24 mb-2" />
                 <Skeleton className="h-10 w-full" />

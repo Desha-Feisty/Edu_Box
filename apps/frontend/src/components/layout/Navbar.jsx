@@ -1,11 +1,21 @@
-import { LogOut, BookMarked, Bell, Check, ExternalLink, Inbox, Shield, Menu, GraduationCap, X, Sun, Moon, Search } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import {
+    LogOut,
+    Bell,
+    Menu,
+    GraduationCap,
+    X,
+    Sun,
+    Moon,
+    Search,
+} from "lucide-react";
 import useAuthStore from "../../stores/Authstore";
 import useSocketStore from "../../stores/SocketStore";
 import useNotificationStore from "../../stores/NotificationStore";
 import useThemeStore from "../../stores/ThemeStore";
 import GlobalSearch from "../search/GlobalSearch";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useRef } from "react";
 import { useDebounce } from "../../hooks/useDebounce";
 
 export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotifications }) {
@@ -13,11 +23,11 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
     const unreadCount = useNotificationStore((state) => state.unreadCount);
     const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
     const { theme, toggleTheme } = useThemeStore();
-    const isDark = theme === "night";
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchInput, setSearchInput] = useState("");
     const searchQuery = useDebounce(searchInput, 200);
     const searchRef = useRef(null);
+    const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
     const disconnectSocket = useSocketStore((state) => state.disconnect);
     const navigate = useNavigate();
@@ -35,7 +45,6 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
                 setIsSearchOpen(true);
             }
         };
-
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, []);
@@ -46,102 +55,57 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
         navigate("/login");
     };
 
-    // Glassmorphism styles - dark mode aware
-    const glassStyle = {
-        backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.7)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.08)" : "1px solid rgba(255, 255, 255, 0.3)",
-        boxShadow: isDark ? "0 8px 32px rgba(0, 0, 0, 0.4)" : "0 8px 32px rgba(0, 0, 0, 0.08)",
-    };
+    const iconBtnClass =
+        "p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/50 dark:border-white/[0.06] backdrop-blur-lg cursor-pointer " +
+        "hover:bg-white/80 dark:hover:bg-slate-800/80 hover:border-slate-200/80 dark:hover:border-white/10 " +
+        "active:scale-[0.97] " +
+        "transition-all duration-150 ease-out " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2";
 
     return (
         <>
-            <nav
-                style={{
-                    height: 72,
-                    width: "100%",
-                    ...glassStyle,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "0 24px",
-                    position: "fixed",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    zIndex: 100,
-                }}
+            <motion.nav
+                initial={{ y: -80 }}
+                animate={{ y: 0 }}
+                transition={{ type: "spring", stiffness: 200, damping: 25 }}
+                className="fixed top-0 left-0 right-0 z-40 h-16 flex items-center justify-between px-4 md:px-6 bg-white/75 dark:bg-slate-900/80 backdrop-blur-xl border-b border-white/40 dark:border-white/[0.06] shadow-lg shadow-slate-200/50 dark:shadow-black/20"
             >
-                {/* Left: Menu + Logo */}
-                <div style={{ display: "flex", alignItems: "center", gap: 16, flex: "0 0 auto" }}>
+                {/* ── Left: Menu + Logo ──────────────────────────────── */}
+                <div className="flex items-center gap-3 flex-shrink-0">
                     {/* Menu toggle */}
                     <button
                         onClick={onToggleSidebar}
-                        style={{
-                            padding: 10,
-                            borderRadius: 12,
-                            background: isDark ? "rgba(30, 41, 59, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-                            cursor: "pointer",
-                            display: "flex",
-                            backdropFilter: "blur(8px)",
-                        }}
+                        className={iconBtnClass}
+                        aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
                     >
                         {isSidebarOpen ? (
-                            <X style={{ width: 22, height: 22, color: isDark ? "#94a3b8" : "#64748b" }} />
+                            <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         ) : (
-                            <Menu style={{ width: 22, height: 22, color: isDark ? "#94a3b8" : "#64748b" }} />
+                            <Menu className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         )}
                     </button>
 
                     {/* Logo */}
                     <div
                         onClick={() => navigate("/")}
-                        style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer" }}
+                        className="flex items-center gap-3 cursor-pointer select-none"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === "Enter" && navigate("/")}
                     >
-                        <div
-                            style={{
-                                width: 42,
-                                height: 42,
-                                borderRadius: 14,
-                                background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                boxShadow: "0 4px 16px rgba(139, 92, 246, 0.35)",
-                            }}
-                        >
-                            <GraduationCap style={{ width: 24, height: 24, color: "white" }} />
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-700 to-brand-500 flex items-center justify-center shadow-lg shadow-brand-700/25">
+                            <GraduationCap className="w-5 h-5 text-white" />
                         </div>
-                        <span
-                            style={{
-                                fontSize: 22,
-                                fontWeight: 700,
-                                color: isDark ? "#f1f5f9" : "#1e293b",
-                                letterSpacing: "-0.02em",
-                            }}
-                        >
-                            ClassBox
+                        <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+                            EduBox
                         </span>
                     </div>
                 </div>
 
-                {/* Center: Search Bar */}
-                <div style={{ flex: "1 1 auto", display: "flex", justifyContent: "center", maxWidth: 480, margin: "0 24px" }}>
-                    <div style={{ position: "relative", width: "100%" }}>
-                        <Search 
-                            style={{ 
-                                position: "absolute", 
-                                left: 14, 
-                                top: "50%", 
-                                transform: "translateY(-50%)", 
-                                width: 18, 
-                                height: 18, 
-                                color: isDark ? "#94a3b8" : "#64748b",
-                                pointerEvents: "none"
-                            }} 
-                        />
+                {/* ── Center: Search Bar ─────────────────────────────── */}
+                <div className="hidden md:flex flex-1 justify-center max-w-md mx-4 lg:mx-6">
+                    <div className="relative w-full">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
                         <input
                             ref={searchRef}
                             type="text"
@@ -152,158 +116,127 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
                             }}
                             onFocus={() => setIsSearchOpen(true)}
                             placeholder="Search courses, notes, quizzes..."
-                            style={{
-                                width: "100%",
-                                padding: "10px 16px 10px 42px",
-                                borderRadius: 14,
-                                background: isDark ? "rgba(30, 41, 59, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                                backdropFilter: "blur(8px)",
-                                border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-                                outline: "none",
-                                fontSize: 14,
-                                color: isDark ? "#f1f5f9" : "#1e293b",
-                                caretColor: "#8b5cf6",
-                            }}
+                            className="w-full pl-10 pr-14 py-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 border border-white/50 dark:border-white/[0.06] text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 backdrop-blur-lg outline-none focus:border-brand-400/50 focus:ring-2 focus:ring-brand-500/20 transition-all caret-brand-500"
                             title="Search (Cmd/Ctrl + K)"
                         />
+                        <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden lg:inline-flex items-center gap-0.5 px-2 py-0.5 text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-200/50 dark:bg-slate-700/50 rounded-md border border-slate-300/50 dark:border-slate-600/50">
+                            <span>⌘</span>K
+                        </kbd>
                     </div>
                 </div>
 
-                {/* Right: Icons */}
-                <div style={{ display: "flex", alignItems: "center", gap: 12, flex: "0 0 auto" }}>
+                {/* ── Mobile search trigger ──────────────────────────── */}
+                <button
+                    onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
+                    className={`md:hidden ${iconBtnClass}`}
+                    aria-label="Toggle search"
+                >
+                    <Search className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                </button>
 
-                    {/* Notifications bell - glass style */}
+                {/* ── Right: Icons & User ────────────────────────────── */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                    {/* Notifications */}
                     <button
                         onClick={onOpenNotifications}
-                        style={{
-                            position: "relative",
-                            padding: 12,
-                            borderRadius: 14,
-                            background: isDark ? "rgba(30, 41, 59, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                            backdropFilter: "blur(8px)",
-                            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-                            cursor: "pointer",
-                        }}
+                        className={iconBtnClass}
+                        aria-label="Open notifications"
                     >
                         <Bell
-                            style={{
-                                width: 22,
-                                height: 22,
-                                color:
-                                    unreadCount > 0
-                                        ? isDark
-                                            ? "#c084fc"
-                                            : "#8b5cf6"
-                                        : isDark
-                                          ? "#94a3b8"
-                                          : "#64748b",
-                            }}
+                            className={`w-5 h-5 transition-colors ${
+                                unreadCount > 0
+                                    ? "text-brand-500 dark:text-brand-400"
+                                    : "text-slate-500 dark:text-slate-400"
+                            }`}
                         />
                         {unreadCount > 0 && (
-                            <span
-                                style={{
-                                    position: "absolute",
-                                    top: 6,
-                                    right: 6,
-                                    width: 10,
-                                    height: 10,
-                                    backgroundColor: "#ef4444",
-                                    borderRadius: "50%",
-                                    border: "2px solid rgba(255,255,255,0.8)",
-                                }}
-                            />
+                            <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white/80 dark:border-slate-900/80" />
                         )}
                     </button>
 
                     {/* Theme toggle */}
                     <button
                         onClick={toggleTheme}
-                        style={{
-                            padding: 12,
-                            borderRadius: 14,
-                            background: isDark ? "rgba(30, 41, 59, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                            backdropFilter: "blur(8px)",
-                            border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-                            cursor: "pointer",
-                        }}
-                        title={theme === "winter" ? "Switch to dark mode" : "Switch to light mode"}
+                        className={iconBtnClass}
+                        aria-label={theme === "winter" ? "Switch to dark mode" : "Switch to light mode"}
                     >
                         {theme === "winter" ? (
-                            <Moon style={{ width: 22, height: 22, color: isDark ? "#94a3b8" : "#64748b" }} />
+                            <Moon className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                         ) : (
-                            <Sun style={{ width: 22, height: 22, color: isDark ? "#fbbf24" : "#f59e0b" }} />
+                            <Sun className="w-5 h-5 text-amber-400" />
                         )}
                     </button>
 
                     {/* Divider */}
-                    <div
-                        style={{
-                            width: 1,
-                            height: 40,
-                            backgroundColor: isDark ? "rgba(255, 255, 255, 0.08)" : "rgba(0, 0, 0, 0.08)",
-                        }}
-                    />
+                    <div className="w-px h-8 bg-slate-300/40 dark:bg-white/[0.06] mx-1 hidden sm:block" />
 
-                    {/* User info */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={{ textAlign: "right" }}>
-                            <p
-                                style={{
-                                    fontSize: 14,
-                                    fontWeight: 600,
-                                    color: isDark ? "#f1f5f9" : "#1e293b",
-                                    margin: 0,
-                                }}
-                            >
+                    {/* User info — hidden on xs */}
+                    <div className="hidden sm:flex items-center gap-3">
+                        <div className="text-right hidden lg:block">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white leading-tight">
                                 {user?.name || "User"}
                             </p>
-                            <p
-                                style={{
-                                    fontSize: 12,
-                                    color: isDark ? "#94a3b8" : "#64748b",
-                                    margin: 0,
-                                    textTransform: "capitalize",
-                                }}
-                            >
+                            <p className="text-xs text-slate-500 dark:text-slate-400 capitalize leading-tight">
                                 {user?.role || "Guest"}
                             </p>
                         </div>
-                        <div
-                            style={{
-                                width: 44,
-                                height: 44,
-                                borderRadius: 14,
-                                background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "white",
-                                fontWeight: 600,
-                                fontSize: 16,
-                                boxShadow: "0 4px 12px rgba(139, 92, 246, 0.35)",
-                            }}
-                        >
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-700 to-brand-500 flex items-center justify-center text-white font-semibold text-sm shadow-md shadow-brand-700/25 flex-shrink-0">
                             {user?.name?.charAt(0)?.toUpperCase() || "U"}
                         </div>
                         <button
                             onClick={handleLogout}
-                            style={{
-                                padding: 10,
-                                borderRadius: 12,
-                                background: isDark ? "rgba(239, 68, 68, 0.2)" : "rgba(254, 226, 226, 0.5)",
-                                border: isDark ? "1px solid rgba(239, 68, 68, 0.3)" : "1px solid rgba(254, 226, 226, 0.5)",
-                                cursor: "pointer",
-                                color: isDark ? "#f87171" : "#dc2626",
-                            }}
+                            className="p-2.5 rounded-xl bg-red-50/80 dark:bg-red-900/15 border border-red-200/60 dark:border-red-800/30 cursor-pointer hover:bg-red-100 dark:hover:bg-red-900/30 active:scale-[0.97] transition-all duration-150 ease-out text-red-500 dark:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+                            aria-label="Logout"
                         >
-                            <LogOut style={{ width: 20, height: 20 }} />
+                            <LogOut className="w-5 h-5" />
                         </button>
                     </div>
-                </div>
-            </nav>
 
-            <GlobalSearch 
-                isOpen={isSearchOpen} 
+                    {/* Mobile: just avatar */}
+                    <div className="sm:hidden flex items-center">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-700 to-brand-500 flex items-center justify-center text-white font-semibold text-xs shadow-md shadow-brand-700/25 flex-shrink-0">
+                            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+                        </div>
+                    </div>
+                </div>
+            </motion.nav>
+
+            {/* ── Mobile search overlay ──────────────────────────────── */}
+            {mobileSearchOpen && (
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    className="fixed top-16 left-0 right-0 z-30 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700 md:hidden"
+                >
+                    <div className="relative w-full">
+                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                        <input
+                            autoFocus
+                            type="text"
+                            value={searchInput}
+                            onChange={(e) => {
+                                setSearchInput(e.target.value);
+                                setIsSearchOpen(true);
+                            }}
+                            onFocus={() => setIsSearchOpen(true)}
+                            placeholder="Search courses, notes, quizzes..."
+                            className="w-full pl-10 pr-10 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:border-brand-400/50 focus:ring-2 focus:ring-brand-500/20 transition-all"
+                        />
+                        <button
+                            onClick={() => setMobileSearchOpen(false)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                            aria-label="Close search"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                </motion.div>
+            )}
+
+            {/* ── Global Search Modal ────────────────────────────────── */}
+            <GlobalSearch
+                isOpen={isSearchOpen}
                 onClose={() => {
                     setIsSearchOpen(false);
                     setSearchInput("");

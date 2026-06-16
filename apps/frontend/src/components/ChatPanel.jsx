@@ -136,7 +136,7 @@ function ChatPanel({ courseId, peerId, peerName, courseName, onNewMessage }) {
     };
 
     return (
-        <div className="flex flex-col rounded-2xl glass-panel overflow-hidden shadow-lg flex-1">
+        <div className="flex flex-col rounded-2xl bg-white dark:bg-base-200 border border-slate-200/60 dark:border-white/[0.06] overflow-hidden flex-1">
             {/* Header */}
             <div className="flex items-center justify-between gap-4 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md px-5 py-4 border-b border-slate-200 dark:border-slate-700/50 flex-shrink-0">
                 <div>
@@ -219,7 +219,7 @@ function ChatPanel({ courseId, peerId, peerName, courseName, onNewMessage }) {
                 <button
                     onClick={handleSend}
                     disabled={!text.trim()}
-                    className="btn btn-primary btn-circle btn-sm self-end"
+                    className="btn-brand btn-circle btn-sm self-end"
                 >
                     <Send className="w-4 h-4" />
                 </button>

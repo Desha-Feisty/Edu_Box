@@ -132,10 +132,10 @@ function TeacherChatTab({ standalone = false }) {
                 className="grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden"
                 style={{ height: standalone ? "calc(100vh - 160px)" : "calc(100vh - 250px)" }}
             >
-                <div className="lg:col-span-1 glass-panel rounded-2xl overflow-hidden flex flex-col">
+                <div className="lg:col-span-1 bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden flex flex-col">
                     <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50 flex-shrink-0">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-blue-600" />
+                            <MessageSquare className="w-5 h-5 text-brand-600" />
                             My Chats
                         </h2>
                         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">

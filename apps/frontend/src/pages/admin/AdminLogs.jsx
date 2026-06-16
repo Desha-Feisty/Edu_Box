@@ -228,7 +228,7 @@ function AdminLogs() {
         <div className="space-y-6">
             {/* System Health Panel */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-panel p-6">
+                <div className="lg:col-span-2 bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="text-xl font-bold flex items-center gap-2">
                             <Server className="w-5 h-5 text-blue-500" />
@@ -270,7 +270,7 @@ function AdminLogs() {
                 </div>
                 
                 {/* Log Stats */}
-                <div className="glass-panel p-6">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                     <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-purple-500" />
                         Activity (30d)
@@ -295,7 +295,7 @@ function AdminLogs() {
             </div>
             
             {/* Filters */}
-            <div className="glass-panel p-4">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-4">
                 <div className="flex flex-wrap gap-4 items-center">
                     {/* Search */}
                     <div className="relative min-w-[200px] flex-1">
@@ -390,7 +390,7 @@ function AdminLogs() {
             </div>
             
             {/* Logs Table */}
-            <div className="glass-panel overflow-hidden">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="table w-full">
                         <thead className="bg-slate-50 dark:bg-base-300 text-slate-500 uppercase text-[11px] font-black tracking-widest">

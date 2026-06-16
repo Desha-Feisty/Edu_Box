@@ -1,7 +1,9 @@
-import { useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion"; // eslint-disable-line no-unused-vars
+import { useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import useNotificationStore from "../../stores/NotificationStore";
-import useThemeStore from "../../stores/ThemeStore";
+import useChatStore from "../../stores/ChatStore";
+import { ConfirmDialog } from "../common/Modal";
 import {
     Bell,
     X,
@@ -9,38 +11,32 @@ import {
     FileText,
     MessageSquare,
     AlertCircle,
-    Calendar,
+    Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
-
-// Glassmorphism styles - dark mode aware
-const glassStyle = (isDark) => ({
-    backgroundColor: isDark ? "rgba(15, 23, 42, 0.85)" : "rgba(255, 255, 255, 0.65)",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
-    borderLeft: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(255, 255, 255, 0.4)",
-    boxShadow: isDark ? "0 25px 50px -12px rgba(0, 0, 0, 0.5)" : "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-});
-
-const backdropStyle = (isDark) => ({
-    backgroundColor: isDark ? "rgba(0, 0, 0, 0.6)" : "rgba(0, 0, 0, 0.35)",
-    backdropFilter: "blur(8px)",
-});
+import { useState } from "react";
 
 const iconColors = {
-    quiz: { bg: "rgba(59, 130, 246, 0.15)", color: "#3b82f6" },
-    "quiz-graded": { bg: "rgba(34, 197, 94, 0.15)", color: "#22c55e" },
-    "quiz-missed": { bg: "rgba(239, 68, 68, 0.15)", color: "#ef4444" },
-    note: { bg: "rgba(245, 158, 11, 0.15)", color: "#f59e0b" },
-    chat: { bg: "rgba(168, 85, 247, 0.15)", color: "#a855f7" },
-    system: { bg: "rgba(100, 116, 139, 0.15)", color: "#64748b" },
+    quiz: { bg: "bg-blue-100 dark:bg-blue-500/15", color: "text-blue-500" },
+    "quiz-graded": { bg: "bg-green-100 dark:bg-green-500/15", color: "text-green-500" },
+    "quiz-missed": { bg: "bg-red-100 dark:bg-red-500/15", color: "text-red-500" },
+    note: { bg: "bg-amber-100 dark:bg-amber-500/15", color: "text-amber-500" },
+    chat: { bg: "bg-purple-100 dark:bg-purple-500/15", color: "text-purple-500" },
+    system: { bg: "bg-slate-100 dark:bg-slate-500/15", color: "text-slate-500" },
 };
 
 function NotificationCenter({ isOpen, onClose }) {
-    const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
-    const { theme } = useThemeStore();
-    const isDark = theme === "night";
-    
+    const navigate = useNavigate();
+    const {
+        notifications,
+        unreadCount,
+        fetchNotifications,
+        markAsRead,
+        markAllAsRead,
+        deleteNotification,
+    } = useNotificationStore();
+    const [deletingId, setDeletingId] = useState(null);
+
     useEffect(() => {
         if (isOpen) {
             fetchNotifications();
@@ -57,7 +53,7 @@ function NotificationCenter({ isOpen, onClose }) {
             system: Bell,
         };
         const Icon = icons[type] || Bell;
-        return <Icon style={{ width: 20, height: 20 }} />;
+        return <Icon className="w-5 h-5" />;
     };
 
     const getColors = (type) => iconColors[type] || iconColors.system;
@@ -65,8 +61,8 @@ function NotificationCenter({ isOpen, onClose }) {
     const handleMarkAllRead = async () => {
         try {
             await markAllAsRead();
-        } catch (err) {
-            console.error("Failed to mark all as read:", err);
+        } catch {
+            console.error("Failed to mark all as read:");
         }
     };
 
@@ -85,16 +81,48 @@ function NotificationCenter({ isOpen, onClose }) {
             if (days < 7) return `${days}d ago`;
             return format(d, "MMM d");
         } catch {
-            return "";
+            return "Unknown";
         }
     };
 
-    const handleNotificationClick = (notification) => {
-        if (!notification.read) markAsRead(notification._id);
+    const handleNotificationClick = useCallback(
+        (notification) => {
+            if (!notification.read) markAsRead(notification._id);
+
+            if (!notification.link) return;
+
+            // Handle chat links (internal routing)
+            if (notification.link.startsWith("__chat__")) {
+                const params = new URLSearchParams(notification.link.replace("__chat__?", ""));
+                const peerId = params.get("peerId");
+                const peerName = params.get("peerName");
+                const courseId = params.get("courseId");
+                if (peerId && courseId) {
+                    useChatStore.getState().openChat(peerId, peerName || "User", courseId);
+                    onClose();
+                }
+                return;
+            }
+
+            navigate(notification.link);
+            onClose();
+        },
+        [markAsRead, navigate, onClose],
+    );
+
+    const handleDeleteClick = (e, id) => {
+        e.stopPropagation();
+        setDeletingId(id);
+    };
+
+    const confirmDelete = async () => {
+        if (!deletingId) return;
+        await deleteNotification(deletingId);
+        setDeletingId(null);
     };
 
     return (
-        <AnimatePresence>
+        <>
             {isOpen && (
                 <>
                     {/* Glassmorphism Backdrop */}
@@ -103,12 +131,7 @@ function NotificationCenter({ isOpen, onClose }) {
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={onClose}
-                        style={{
-                            position: "fixed",
-                            inset: 0,
-                            ...backdropStyle(isDark),
-                            zIndex: 200,
-                        }}
+                        className="fixed inset-0 bg-black/35 dark:bg-black/60 backdrop-blur-sm z-[200]"
                     />
 
                     {/* Glassmorphism Side Panel */}
@@ -117,202 +140,99 @@ function NotificationCenter({ isOpen, onClose }) {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: "100%" }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        style={{
-                            position: "fixed",
-                            right: 0,
-                            top: 0,
-                            height: "100%",
-                            width: "100%",
-                            maxWidth: 420,
-                            ...glassStyle(isDark),
-                            display: "flex",
-                            flexDirection: "column",
-                            zIndex: 250,
-                        }}
+                        className="fixed right-0 top-0 h-full w-full max-w-md bg-white/65 dark:bg-slate-900/85 backdrop-blur-2xl border-l border-white/40 dark:border-white/[0.06] shadow-2xl flex flex-col z-[250]"
                     >
                         {/* Glass Header */}
-                        <div style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            padding: "24px",
-                            borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(0, 0, 0, 0.06)",
-                        }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                                <div style={{
-                                    width: 48,
-                                    height: 48,
-                                    borderRadius: 16,
-                                    background: "linear-gradient(135deg, #8b5cf6, #a855f7)",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    boxShadow: "0 4px 16px rgba(139, 92, 246, 0.35)",
-                                }}>
-                                    <Bell style={{ width: 24, height: 24, color: "white" }} />
+                        <div className="flex items-center justify-between px-6 py-6 border-b border-black/[0.06] dark:border-white/[0.06]">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-500/35">
+                                    <Bell className="w-6 h-6 text-white" />
                                 </div>
                                 <div>
-                                    <h2 style={{ fontSize: 20, fontWeight: 700, color: isDark ? "#f1f5f9" : "#1e293b", margin: 0 }}>
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
                                         Notifications
                                     </h2>
                                     {unreadCount > 0 && (
-                                        <p style={{ fontSize: 14, color: isDark ? "#94a3b8" : "#64748b", margin: 0 }}>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">
                                             {unreadCount} unread
                                         </p>
                                     )}
                                 </div>
                             </div>
-                            <button 
-                                onClick={onClose} 
-                                style={{
-                                    padding: 10,
-                                    borderRadius: 14,
-                                    background: isDark ? "rgba(30, 41, 59, 0.6)" : "rgba(255, 255, 255, 0.5)",
-                                    border: isDark ? "1px solid rgba(255, 255, 255, 0.1)" : "1px solid rgba(255, 255, 255, 0.5)",
-                                    cursor: "pointer",
-                                }}
+                            <button
+                                onClick={onClose}
+                                className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/[0.1] cursor-pointer hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors"
                             >
-                                <X style={{ width: 20, height: 20, color: isDark ? "#94a3b8" : "#64748b" }} />
+                                <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                             </button>
                         </div>
 
-                        {/* Mark all read button - glass style */}
+                        {/* Mark all read button */}
                         {unreadCount > 0 && (
-                            <div style={{ 
-                                padding: "16px 24px", 
-                                borderBottom: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(0, 0, 0, 0.06)",
-                                background: isDark ? "rgba(139, 92, 246, 0.08)" : "rgba(139, 92, 246, 0.04)",
-                            }}>
+                            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
                                 <button
                                     onClick={handleMarkAllRead}
-                                    style={{
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: 8,
-                                        padding: "10px 18px",
-                                        borderRadius: 12,
-                                        fontSize: 14,
-                                        fontWeight: 600,
-                                        color: isDark ? "#c084fc" : "#8b5cf6",
-                                        background: isDark ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
-                                        border: isDark ? "1px solid rgba(139, 92, 246, 0.25)" : "1px solid rgba(139, 92, 246, 0.2)",
-                                        cursor: "pointer",
-                                    }}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 dark:bg-violet-500/15 border border-violet-500/20 dark:border-violet-500/25 cursor-pointer hover:bg-violet-500/20 dark:hover:bg-violet-500/25 transition-colors"
                                 >
-                                    <Check style={{ width: 18, height: 18 }} />
+                                    <Check className="w-4.5 h-4.5" />
                                     Mark all as read
                                 </button>
                             </div>
                         )}
 
-                        {/* Notifications List - glass style */}
-                        <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px" }}>
+                        {/* Notifications List */}
+                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {notifications.length === 0 ? (
-                                <div style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    padding: "64px 24px",
-                                    gap: 16,
-                                }}>
-                                    <div style={{
-                                        width: 72,
-                                        height: 72,
-                                        borderRadius: "50%",
-                                        background: isDark ? "rgba(139, 92, 246, 0.15)" : "rgba(139, 92, 246, 0.1)",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }}>
-                                        <Bell style={{ width: 36, height: 36, color: isDark ? "#a855f7" : "#a855f7" }} />
+                                <div className="flex flex-col items-center justify-center py-16 px-6 gap-4">
+                                    <div className="w-[72px] h-[72px] rounded-full bg-violet-500/10 dark:bg-violet-500/15 flex items-center justify-center">
+                                        <Bell className="w-9 h-9 text-violet-500" />
                                     </div>
-                                    <p style={{ color: isDark ? "#94a3b8" : "#64748b", fontSize: 15 }}>Your inbox is empty!</p>
-                                    <p style={{ color: isDark ? "#64748b" : "#94a3b8", fontSize: 13 }}>You're all caught up</p>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">Your inbox is empty!</p>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500">You&apos;re all caught up</p>
                                 </div>
                             ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                                <div className="flex flex-col gap-2">
                                     {notifications.map((notification) => {
                                         const colors = getColors(notification.type);
+                                        const isUnread = !notification.read;
                                         return (
                                             <div
                                                 key={notification._id}
                                                 onClick={() => handleNotificationClick(notification)}
-                                                style={{
-                                                    display: "flex",
-                                                    gap: 14,
-                                                    padding: 16,
-                                                    borderRadius: 16,
-                                                    backgroundColor: notification.read 
-                                                        ? (isDark ? "rgba(30, 41, 59, 0.3)" : "rgba(255, 255, 255, 0.4)") 
-                                                        : (isDark ? "rgba(139, 92, 246, 0.12)" : "rgba(139, 92, 246, 0.08)"),
-                                                    backdropFilter: "blur(8px)",
-                                                    border: notification.read 
-                                                        ? (isDark ? "1px solid rgba(255, 255, 255, 0.04)" : "1px solid rgba(255, 255, 255, 0.3)") 
-                                                        : (isDark ? "1px solid rgba(139, 92, 246, 0.2)" : "1px solid rgba(139, 92, 246, 0.15)"),
-                                                    cursor: "pointer",
-                                                    transition: "all 0.2s",
-                                                }}
+                                                className={`flex gap-3.5 p-4 rounded-2xl cursor-pointer transition-all duration-200 relative group ${
+                                                    isUnread
+                                                        ? "bg-violet-500/10 dark:bg-violet-500/12 border border-violet-500/15 dark:border-violet-500/20"
+                                                        : "bg-white/40 dark:bg-slate-800/30 border border-white/30 dark:border-white/[0.04]"
+                                                } hover:bg-white/80 dark:hover:bg-slate-800/60 hover:shadow-md`}
                                             >
-                                                {/* Icon with glass effect */}
-                                                <div style={{
-                                                    width: 44,
-                                                    height: 44,
-                                                    borderRadius: 14,
-                                                    background: colors.bg,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    flexShrink: 0,
-                                                    color: colors.color,
-                                                }}>
+                                                {/* Icon */}
+                                                <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center shrink-0 ${colors.color}`}>
                                                     {getIcon(notification.type)}
                                                 </div>
-                                                
+
                                                 {/* Content */}
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{
-                                                        display: "flex",
-                                                        justifyContent: "space-between",
-                                                        alignItems: "flex-start",
-                                                        marginBottom: 4,
-                                                    }}>
-                                                        <p style={{
-                                                            fontSize: 15,
-                                                            fontWeight: notification.read ? 500 : 600,
-                                                            color: notification.read ? (isDark ? "#94a3b8" : "#475569") : (isDark ? "#f1f5f9" : "#1e293b"),
-                                                            margin: 0,
-                                                            overflow: "hidden",
-                                                            textOverflow: "ellipsis",
-                                                            whiteSpace: "nowrap",
-                                                            maxWidth: "85%",
-                                                        }}>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <p className={`text-sm ${isUnread ? "font-semibold text-slate-900 dark:text-slate-100" : "font-medium text-slate-600 dark:text-slate-400"} truncate max-w-[85%]`}>
                                                             {notification.title}
                                                         </p>
-                                                        <span style={{
-                                                            fontSize: 12,
-                                                            color: isDark ? "#64748b" : "#94a3b8",
-                                                            fontWeight: 500,
-                                                            marginLeft: 8,
-                                                            flexShrink: 0,
-                                                        }}>
+                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium ml-2 shrink-0">
                                                             {formatTime(notification.createdAt)}
                                                         </span>
                                                     </div>
-                                                    <p style={{
-                                                        fontSize: 14,
-                                                        color: isDark ? "#94a3b8" : "#64748b",
-                                                        margin: 0,
-                                                        lineHeight: 1.5,
-                                                        overflow: "hidden",
-                                                        textOverflow: "ellipsis",
-                                                        display: "-webkit-box",
-                                                        WebkitLineClamp: 2,
-                                                        WebkitBoxOrient: "vertical",
-                                                    }}>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
                                                         {notification.message}
                                                     </p>
                                                 </div>
+
+                                                {/* Delete button (visible on hover) */}
+                                                <button
+                                                    onClick={(e) => handleDeleteClick(e, notification._id)}
+                                                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/70 dark:bg-slate-700/70 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 text-slate-400"
+                                                    aria-label="Delete notification"
+                                                >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
                                             </div>
                                         );
                                     })}
@@ -322,27 +242,27 @@ function NotificationCenter({ isOpen, onClose }) {
 
                         {/* Footer */}
                         {notifications.length > 0 && (
-                            <div style={{
-                                padding: "16px 24px",
-                                textAlign: "center",
-                                borderTop: isDark ? "1px solid rgba(255, 255, 255, 0.06)" : "1px solid rgba(0, 0, 0, 0.06)",
-                                background: isDark ? "rgba(139, 92, 246, 0.08)" : "rgba(139, 92, 246, 0.04)",
-                            }}>
-                                <p style={{
-                                    fontSize: 11,
-                                    color: isDark ? "#64748b" : "#94a3b8",
-                                    letterSpacing: "0.1em",
-                                    textTransform: "uppercase",
-                                    fontWeight: 600,
-                                }}>
+                            <div className="px-6 py-4 text-center border-t border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
+                                <p className="text-[11px] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-semibold">
                                     End of notifications
                                 </p>
                             </div>
                         )}
                     </motion.div>
+
+                    {/* Delete Confirmation */}
+                    <ConfirmDialog
+                        isOpen={!!deletingId}
+                        onClose={() => setDeletingId(null)}
+                        onConfirm={confirmDelete}
+                        title="Delete Notification?"
+                        message="Are you sure you want to delete this notification?"
+                        confirmLabel="Delete"
+                        variant="danger"
+                    />
                 </>
             )}
-        </AnimatePresence>
+        </>
     );
 }
 

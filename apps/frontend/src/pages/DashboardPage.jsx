@@ -155,7 +155,7 @@ function DashboardPage() {
     if (isLoading) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="w-10 h-10 border-4 border-violet-200 dark:border-violet-700 border-t-violet-600 rounded-full animate-spin" />
+                <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
             </div>
         );
     }
@@ -213,7 +213,7 @@ function DashboardPage() {
                             value={stats.totalCourses}
                             subtitle="Created"
                             icon={BookOpen}
-                            color="violet"
+                            color="brand"
                             type="stat"
                         />
                         <ProgressCard
@@ -231,7 +231,7 @@ function DashboardPage() {
                             title="My Courses"
                             value={stats.totalCourses}
                             icon={BookOpen}
-                            color="violet"
+                            color="brand"
                             type="stat"
                         />
                         <ProgressCard
@@ -270,8 +270,8 @@ function DashboardPage() {
                         <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
                             <div className="flex items-center justify-between mb-6">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
-                                        <BookOpen className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                    <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                                        <BookOpen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -284,7 +284,7 @@ function DashboardPage() {
                                 </div>
                                 <button
                                     onClick={() => navigate("/teacher/courses")}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-violet-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-500/10 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                                 >
                                     View all
                                     <ArrowRight className="w-4 h-4" />
@@ -307,8 +307,8 @@ function DashboardPage() {
                                             onClick={() => navigate(`/teacher/course/${course._id}`)}
                                             className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left"
                                         >
-                                            <div className="w-12 h-12 rounded-2xl bg-violet-500/10 flex items-center justify-center shrink-0">
-                                                <BookOpen className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                                            <div className="w-12 h-12 rounded-2xl bg-brand-500/10 flex items-center justify-center shrink-0">
+                                                <BookOpen className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-slate-900 dark:text-white truncate">
@@ -319,7 +319,7 @@ function DashboardPage() {
                                                 </p>
                                             </div>
                                             <div className="text-right shrink-0">
-                                                <span className="px-3 py-1.5 rounded-xl text-xs font-medium bg-violet-100 dark:bg-violet-500/20 text-violet-600 dark:text-violet-400">
+                                                <span className="px-3 py-1.5 rounded-xl text-xs font-medium bg-brand-100 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400">
                                                     {course.enrollmentCount || 0} students
                                                 </span>
                                             </div>
@@ -330,11 +330,11 @@ function DashboardPage() {
                         </div>
                     ) : (
                         /* Student: Upcoming Quizzes */
-                        <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
-                            <div className="flex items-center justify-between mb-6">
+                        <div className="bg-white dark:bg-base-200 rounded-2xl p-5 border border-slate-200/60 dark:border-white/[0.06]">
+                            <div className="flex items-center justify-between mb-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center">
-                                        <Zap className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                    <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                                        <Zap className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                     </div>
                                     <div>
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -347,7 +347,7 @@ function DashboardPage() {
                                 </div>
                                 <button
                                     onClick={() => navigate(`${rolePrefix}/quizzes`)}
-                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-colors"
                                 >
                                     View all
                                     <ArrowRight className="w-4 h-4" />
@@ -356,11 +356,11 @@ function DashboardPage() {
 
                             {upcomingQuizzes.length === 0 ? (
                                 <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                                    <Zap className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                                    <p>No quizzes available right now</p>
+                                    <Zap className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                                    <p className="font-medium">No quizzes available right now</p>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                     {upcomingQuizzes.map((quiz) => (
                                         <motion.button
                                             key={quiz._id}
@@ -368,21 +368,21 @@ function DashboardPage() {
                                             animate={{ opacity: 1, x: 0 }}
                                             onClick={() => handleStartQuiz(quiz._id)}
                                             disabled={startingQuizId === quiz._id}
-                                            className="w-full flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                                            className="w-full flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
-                                                <Zap className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                            <div className="w-11 h-11 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
+                                                <Zap className="w-5.5 h-5.5 text-brand-600 dark:text-brand-400" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="font-medium text-slate-900 dark:text-white truncate">
                                                     {quiz.title}
                                                 </p>
-                                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                                                     {quiz.course?.title} • {quiz.durationMinutes} min
                                                 </p>
                                             </div>
                                             <div className="text-right shrink-0">
-                                                <span className="px-3 py-1.5 rounded-xl text-xs font-medium bg-blue-100 dark:bg-blue-500/20 text-blue-600 dark:text-blue-400">
+                                                <span className="px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-100 dark:bg-brand-500/20 text-brand-600 dark:text-brand-400 whitespace-nowrap">
                                                     {startingQuizId === quiz._id ? (
                                                         <span className="loading loading-spinner loading-xs"></span>
                                                     ) : (
@@ -415,13 +415,13 @@ function DashboardPage() {
                 {/* Right Column - Recent Grades & Quick Actions */}
                 <div className="space-y-6">
                     {/* Recent Grades (Student) / Recent Submissions (Teacher) */}
-                    <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-500/20 flex items-center justify-center">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl p-5 border border-slate-200/60 dark:border-white/[0.06]">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
                                 {role === "teacher" ? (
-                                    <Users className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                    <Users className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                 ) : (
-                                    <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                    <TrendingUp className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                 )}
                             </div>
                             <div>
@@ -534,7 +534,7 @@ function DashboardPage() {
                     </div>
 
                     {/* Quick Actions - Role-based */}
-                    <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl p-5 border border-slate-200/60 dark:border-white/[0.06]">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
                             Quick Actions
                         </h3>
@@ -545,7 +545,7 @@ function DashboardPage() {
                                         onClick={() => navigate(`${rolePrefix}/quiz/create`)}
                                         className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                                     >
-                                        <PlusCircle className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                                        <PlusCircle className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                             Create Quiz
                                         </span>
@@ -593,7 +593,7 @@ function DashboardPage() {
                                         onClick={() => navigate(`${rolePrefix}/calendar`)}
                                         className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                                     >
-                                        <Calendar className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+                                        <Calendar className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                             Calendar
                                         </span>
@@ -622,13 +622,13 @@ function DashboardPage() {
                     </div>
 
                     {/* Course Progress / Course Overview - Role-based */}
-                    <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl p-5 border border-slate-200/60 dark:border-white/[0.06]">
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
                                 {role === "teacher" ? (
-                                    <GraduationCap className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                    <GraduationCap className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                 ) : (
-                                    <BookOpen className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                    <BookOpen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                 )}
                             </div>
                             <div>
@@ -655,7 +655,7 @@ function DashboardPage() {
                                             total={100}
                                             subtitle={`${publishedCount} quiz(s) published`}
                                             icon={BookOpen}
-                                            color="violet"
+                                            color="brand"
                                             type="compact"
                                         />
                                     );
@@ -673,7 +673,7 @@ function DashboardPage() {
                                             total={100}
                                             subtitle={`${publishedCount} quiz(s) published`}
                                             icon={BookOpen}
-                                            color="violet"
+                                            color="brand"
                                             type="compact"
                                         />
                                     );

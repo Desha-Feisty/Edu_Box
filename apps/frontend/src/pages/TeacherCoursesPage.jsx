@@ -83,7 +83,7 @@ function TeacherCoursesPage() {
                 <div className="mb-8">
                     <button
                         onClick={() => setShowForm(!showForm)}
-                        className="btn btn-primary rounded-xl px-6 shadow-lg shadow-blue-500/20"
+                        className="btn-brand"
                     >
                         <Plus className="w-5 h-5 mr-2" />
                         Create New Course
@@ -92,7 +92,7 @@ function TeacherCoursesPage() {
 
                 {/* Create Course Form */}
                 {showForm && (
-                    <div className="glass-panel rounded-2xl p-6 mb-8">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 mb-8">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
                             Create New Course
                         </h3>
@@ -120,9 +120,8 @@ function TeacherCoursesPage() {
                                     <input
                                         type="text"
                                         placeholder="e.g., MATH101"
-                                        className="input input-bordered rounded-xl"
-                                        disabled
                                         className="input input-bordered rounded-xl bg-slate-100 dark:bg-slate-800"
+                                        disabled
                                     />
                                 </div>
                             </div>
@@ -144,7 +143,7 @@ function TeacherCoursesPage() {
                                 <button
                                     type="submit"
                                     disabled={isLoading}
-                                    className="btn btn-primary rounded-xl"
+                                    className="btn-brand"
                                 >
                                     {isLoading ? (
                                         <span className="loading loading-spinner loading-sm"></span>
@@ -166,13 +165,11 @@ function TeacherCoursesPage() {
 
                 {/* Courses Grid */}
                 {allCourses.length === 0 ? (
-                    <div className="card bg-blue-50 border border-blue-200 border-dashed">
-                        <div className="card-body text-center py-12">
-                            <BookOpen className="w-16 h-16 text-blue-300 mx-auto mb-4" />
-                            <p className="text-gray-600">
-                                You haven't created any courses yet.
-                            </p>
-                        </div>
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06] p-12 text-center">
+                        <BookOpen className="w-16 h-16 text-brand-300 dark:text-brand-600 mx-auto mb-4" />
+                        <p className="text-slate-500 dark:text-slate-400">
+                            You haven't created any courses yet.
+                        </p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -181,9 +178,9 @@ function TeacherCoursesPage() {
                                 key={course._id}
                                 className="glass-card group hover:scale-[1.02] transition-all"
                             >
-                                <div className="card-body p-5">
+                                <div className="p-5">
                                     <div className="flex items-start justify-between mb-3">
-                                        <h3 className="card-title text-lg text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors line-clamp-1">
+                                        <h3 className="font-bold text-lg text-slate-900 dark:text-white group-hover:text-brand-600 transition-colors line-clamp-1">
                                             {course.title}
                                         </h3>
                                         <button
@@ -201,13 +198,13 @@ function TeacherCoursesPage() {
                                             <Users className="w-3.5 h-3.5" />
                                             {course.enrollmentCount || 0} students
                                         </span>
-                                        <span className="badge badge-primary badge-sm shadow-sm">
+                                        <span className="badge bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 font-medium border-0 badge-sm">
                                             Active
                                         </span>
                                     </div>
                                     <button
                                         onClick={() => navigate(`/teacher/course/${course._id}`)}
-                                        className="btn btn-outline btn-sm w-full rounded-xl group-hover:bg-blue-500 group-hover:text-white transition-colors"
+                                        className="btn btn-outline btn-sm w-full rounded-xl group-hover:bg-brand-600 group-hover:text-white transition-colors"
                                     >
                                         Manage Course
                                         <ArrowRight className="w-4 h-4 ml-1" />

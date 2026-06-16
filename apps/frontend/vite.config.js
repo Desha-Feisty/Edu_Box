@@ -13,6 +13,7 @@ export default defineConfig({
     resolve: {
         alias: {
             "@": path.resolve(__dirname, "./src"),
+            "@edubox/shared": path.resolve(__dirname, "../../packages/shared/src"),
         },
     },
     test: {
@@ -25,6 +26,11 @@ export default defineConfig({
             reporter: ["text", "json", "html"],
             include: ["src/**/*.{js,jsx}"],
             exclude: ["node_modules/", "src/test/"],
+        },
+        resolve: {
+            alias: {
+                "@edubox/shared": path.resolve(__dirname, "../../packages/shared/src"),
+            },
         },
     },
     server: {

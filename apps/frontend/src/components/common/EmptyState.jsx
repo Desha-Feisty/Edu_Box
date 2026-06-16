@@ -23,7 +23,7 @@ export function EmptyState({
             </p>
 
             {actionLabel && onAction && (
-                <button onClick={onAction} className="btn btn-primary gap-2">
+                <button onClick={onAction} className="btn-brand">
                     <Plus className="w-4 h-4" />
                     {actionLabel}
                 </button>

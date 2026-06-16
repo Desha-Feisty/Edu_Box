@@ -6,12 +6,6 @@ const useNotificationStore = create((set, get) => ({
     notifications: [],
     unreadCount: 0,
     loading: false,
-    isOpen: false,
-    
-    setOpen: (open) => set({ isOpen: open }),
-    onOpen: () => set({ isOpen: true }),
-    onClose: () => set({ isOpen: false }),
-
     fetchNotifications: async () => {
         // Prevent overlapping requests
         if (get().loading) return;

@@ -80,7 +80,7 @@ function QuizSubmittedPage() {
     return (
         <PageWrapper>
             <div className="min-h-[80vh] flex items-center justify-center px-6 relative z-10">
-                <div className="glass-panel max-w-md w-full border border-white/40 dark:border-slate-700/50 shadow-xl rounded-3xl p-8 text-center">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] w-full p-8 text-center">
                     <div className="flex justify-center mb-6">
                         <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
                             <CheckCircle className="w-10 h-10 text-green-600 dark:text-green-400" />
@@ -120,7 +120,7 @@ function QuizSubmittedPage() {
 
                     <button
                         onClick={() => navigate("/student")}
-                        className="btn btn-primary gap-2"
+                        className="btn-brand"
                     >
                         Back to Dashboard
                     </button>

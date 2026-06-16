@@ -111,9 +111,9 @@ export default function NoteDetail() {
                         <p className="text-slate-600 dark:text-slate-400 text-lg font-bold mb-6">Note not found</p>
                         <button
                             onClick={() => navigate(-1)}
-                            className="btn btn-primary gap-2"
+                            className="btn-brand"
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <ArrowLeft className="w-4 h-4" />
                             Go Back
                         </button>
                     </div>
@@ -218,7 +218,7 @@ export default function NoteDetail() {
                                     <button
                                         onClick={handleEdit}
                                         disabled={isUploading}
-                                        className="btn btn-primary shadow-lg shadow-blue-500/20 rounded-xl px-8"
+                                        className="btn-brand px-8"
                                     >
                                         {isUploading ? (
                                             <>

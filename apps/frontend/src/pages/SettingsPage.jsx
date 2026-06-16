@@ -143,15 +143,15 @@ function SettingsPage() {
                 <div className="flex flex-col md:flex-row gap-8">
                     {/* Sidebar Tabs */}
                     <div className="w-full md:w-64 shrink-0">
-                        <div className="glass-panel p-2 flex flex-col gap-1">
+                        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-2 flex flex-col gap-1">
                             {tabs.map((tab) => (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
                                         activeTab === tab.id
-                                            ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
-                                            : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-base-300"
+                                        ? "bg-brand-600 text-white shadow-lg shadow-brand-700/25"
+                                        : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-base-300"
                                     }`}
                                 >
                                     <tab.icon className="w-5 h-5" />
@@ -164,7 +164,7 @@ function SettingsPage() {
                     {/* Content Area */}
                     <div className="flex-1">
                         {activeTab === "profile" && (
-                            <div className="glass-panel p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 sm:p-8">
                                 <h2 className="text-xl font-bold mb-6">Profile Information</h2>
                                 <div className="space-y-4">
                                     <div className="form-control">
@@ -208,7 +208,7 @@ function SettingsPage() {
                         )}
 
                         {activeTab === "security" && (
-                            <div className="glass-panel p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 sm:p-8">
                                 <h2 className="text-xl font-bold mb-6">Security Settings</h2>
                                 <form
                                     onSubmit={(e) => {
@@ -283,10 +283,10 @@ function SettingsPage() {
                                     </div>
                                     <button
                                         type="submit"
-                                        className="btn btn-primary w-full rounded-xl mt-4"
-                                    >
-                                        <Save className="w-5 h-5 mr-2" />
-                                        Update Password
+                                className="btn-brand w-full"
+                            >
+                                <Save className="w-5 h-4" />
+                                Update Password
                                     </button>
                                 </form>
                             </div>
@@ -295,9 +295,9 @@ function SettingsPage() {
                         {activeTab === "support" && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
                                 {/* Create Ticket */}
-                                <div className="glass-panel p-8">
+                                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 sm:p-8">
                                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                                        <Plus className="w-5 h-5 text-blue-600" />
+                                        <Plus className="w-5 h-5 text-brand-600" />
                                         Create Support Ticket
                                     </h2>
                                     <form onSubmit={handleSubmitTicket} className="space-y-4">
@@ -339,20 +339,20 @@ function SettingsPage() {
                                         <button
                                             type="submit"
                                             disabled={isSubmittingTicket}
-                                            className="btn btn-primary w-full rounded-xl"
-                                        >
-                                            {isSubmittingTicket ? (
-                                                <span className="loading loading-spinner loading-xs"></span>
-                                            ) : (
-                                                <Send className="w-5 h-5 mr-2" />
-                                            )}
-                                            Submit Ticket
+                                        className="btn-brand w-full"
+                                    >
+                                        {isSubmittingTicket ? (
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                        ) : (
+                                            <Send className="w-4 h-4" />
+                                        )}
+                                        Submit Ticket
                                         </button>
                                     </form>
                                 </div>
 
                                 {/* My Tickets */}
-                                <div className="glass-panel overflow-hidden">
+                                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
                                     <div className="p-6 border-b border-slate-100 dark:border-slate-800">
                                         <h2 className="text-xl font-bold">My Tickets</h2>
                                     </div>

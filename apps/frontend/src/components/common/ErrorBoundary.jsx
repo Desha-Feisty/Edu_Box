@@ -39,7 +39,7 @@ function ErrorFallback({ error, onReset }) {
 
     return (
         <div className="min-h-[400px] flex items-center justify-center p-6">
-            <div className="glass-panel p-8 max-w-md text-center">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-8 max-w-md text-center">
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                     <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
                 </div>
@@ -55,7 +55,7 @@ function ErrorFallback({ error, onReset }) {
                 <div className="flex flex-col sm:flex-row gap-3 justify-center">
                     <button
                         onClick={onReset}
-                        className="btn btn-primary gap-2"
+                        className="btn-brand"
                     >
                         <RefreshCw className="w-4 h-4" />
                         Try Again

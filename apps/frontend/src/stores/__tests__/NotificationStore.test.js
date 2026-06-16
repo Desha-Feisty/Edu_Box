@@ -19,7 +19,6 @@ describe("NotificationStore", () => {
             notifications: [],
             unreadCount: 0,
             loading: false,
-            isOpen: false,
         });
     });
 
@@ -33,42 +32,6 @@ describe("NotificationStore", () => {
             expect(state.notifications).toEqual([]);
             expect(state.unreadCount).toBe(0);
             expect(state.loading).toBe(false);
-            expect(state.isOpen).toBe(false);
-        });
-    });
-
-    describe("setOpen", () => {
-        it("should set isOpen to true", () => {
-            const { setOpen } = useNotificationStore.getState();
-
-            act(() => {
-                setOpen(true);
-            });
-
-            expect(useNotificationStore.getState().isOpen).toBe(true);
-        });
-    });
-
-    describe("onOpen/onClose", () => {
-        it("should open the notification panel", () => {
-            const { onOpen } = useNotificationStore.getState();
-
-            act(() => {
-                onOpen();
-            });
-
-            expect(useNotificationStore.getState().isOpen).toBe(true);
-        });
-
-        it("should close the notification panel", () => {
-            useNotificationStore.setState({ isOpen: true });
-            const { onClose } = useNotificationStore.getState();
-
-            act(() => {
-                onClose();
-            });
-
-            expect(useNotificationStore.getState().isOpen).toBe(false);
         });
     });
 

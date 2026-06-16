@@ -13,7 +13,7 @@ export default function CourseHeader({
     isUpdatingCourse
 }) {
     return (
-        <div className="glass-panel overflow-hidden mb-8 border border-white/40 dark:border-slate-700/50 shadow-xl shadow-blue-900/5 rounded-3xl">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mb-8 overflow-hidden">
             <div className="p-8 md:p-10 relative">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-6 relative z-10">
@@ -116,7 +116,7 @@ export default function CourseHeader({
                                 <button
                                     type="submit"
                                     disabled={isUpdatingCourse}
-                                    className="btn btn-primary rounded-xl px-8 shadow-md shadow-blue-500/20"
+                                    className="btn-brand px-8"
                                 >
                                     {isUpdatingCourse ? (
                                         <span className="loading loading-spinner loading-sm"></span>

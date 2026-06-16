@@ -450,7 +450,7 @@ const useTeacherStore = create((set, get) => ({
         }
     },
 
-listRecentChats: async (silent = false) => {
+    listRecentChats: async (silent = false) => {
         // Prevent overlapping requests
         if (get().recentChatsLoading) return;
         
@@ -504,6 +504,34 @@ listRecentChats: async (silent = false) => {
                 .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             set({ recentChats: conversationList, recentChatsLoading: false });
         } catch { /* Silent */ }
+    },
+
+    // Recent teacher submissions (for dashboard)
+    recentSubmissions: [],
+    recentSubmissionsLoading: false,
+    listRecentSubmissions: async (silent = false) => {
+        if (get().recentSubmissionsLoading) return;
+        if (!silent) set({ recentSubmissionsLoading: true });
+
+        const authState = useAuthStore.getState();
+        const token = authState.token;
+        if (!token) {
+            set({ recentSubmissionsLoading: false });
+            return;
+        }
+
+        try {
+            const response = await axios.get('/api/attempts/recent/teacher', {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (response.status !== 200) throw new Error('Failed to list recent submissions');
+            const data = response.data.submissions || [];
+            set({ recentSubmissions: data, recentSubmissionsLoading: false });
+        } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('listRecentSubmissions error', err);
+            set({ recentSubmissionsLoading: false });
+        }
     },
 
     // Calendar Events

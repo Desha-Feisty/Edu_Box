@@ -207,7 +207,7 @@ function AnalyticsPage() {
         return (
             <PageWrapper>
                 <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="w-10 h-10 border-4 border-violet-200 dark:border-violet-700 border-t-violet-600 rounded-full animate-spin" />
+                    <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
                 </div>
             </PageWrapper>
         );
@@ -258,8 +258,8 @@ function AnalyticsPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
                             <div className="flex items-center justify-between mb-4">
-                                <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
-                                    <BookOpen className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                                <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                                    <BookOpen className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                                 </div>
                             </div>
                             <p className="text-3xl font-bold text-slate-900 dark:text-white">{data.totalCourses}</p>
@@ -422,8 +422,8 @@ function AnalyticsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white dark:bg-base-200 rounded-3xl p-6 shadow-md">
                     <div className="flex items-center justify-between mb-4">
-                        <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-500/20 flex items-center justify-center">
-                            <FileText className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                        <div className="w-10 h-10 rounded-xl bg-brand-100 dark:bg-brand-500/20 flex items-center justify-center">
+                            <FileText className="w-5 h-5 text-brand-600 dark:text-brand-400" />
                         </div>
                         {data.avgScore >= 70 ? (
                             <TrendingUp className="w-5 h-5 text-green-500" />
@@ -646,7 +646,7 @@ function AnalyticsPage() {
             </div>
 
             {/* Insights */}
-            <div className="bg-gradient-to-br from-violet-500/10 to-purple-500/10 dark:from-violet-500/20 dark:to-purple-500/20 rounded-3xl p-6">
+            <div className="bg-gradient-to-br from-brand-500/10 to-brand-700/10 dark:from-brand-500/20 dark:to-brand-700/20 rounded-3xl p-6">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">
                     Key Insights
                 </h3>

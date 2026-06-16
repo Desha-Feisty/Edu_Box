@@ -66,8 +66,8 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 glass-panel border-dashed border-slate-300 dark:border-slate-700">
-                <span className="loading loading-spinner text-blue-600 mb-4"></span>
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06]">
+                <span className="loading loading-spinner text-brand-600 mb-4"></span>
                 <p className="text-sm text-slate-500">Preparing your analytics...</p>
             </div>
         );
@@ -75,9 +75,31 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
 
     if (!data || (mode === "teacher" && !data.quizStats?.length) || (mode === "student" && !data.history?.length)) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 glass-panel border-dashed border-slate-300 dark:border-slate-700">
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06]">
                 <TrendingUp className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
                 <p className="text-slate-500 dark:text-slate-400">Not enough data to display analytics yet.</p>
+            </div>
+        );
+    }
+
+    // KPI-only lightweight mode for dashboard cards
+    if (mode === 'kpi-only') {
+        return (
+            <div className="bg-white dark:bg-base-200 rounded-2xl p-4">
+                <div className="grid grid-cols-3 gap-3">
+                    <div className="col-span-1">
+                        <div className="text-sm text-slate-500">Students</div>
+                        <div className="text-xl font-semibold">{data?.students || data?.quizStats?.length || 0}</div>
+                    </div>
+                    <div className="col-span-1">
+                        <div className="text-sm text-slate-500">Avg Score</div>
+                        <div className="text-xl font-semibold">{data?.avgScore || Math.round((data?.quizStats?.reduce((s, q) => s + (q.avgScore || 0), 0) || 0) / Math.max(1, (data?.quizStats?.length || 1))) }%</div>
+                    </div>
+                    <div className="col-span-1">
+                        <div className="text-sm text-slate-500">Quizzes</div>
+                        <div className="text-xl font-semibold">{data?.quizzes || data?.quizStats?.length || (data?.history?.length || 0)}</div>
+                    </div>
+                </div>
             </div>
         );
     }
@@ -85,15 +107,15 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
     return ( mode === "teacher" ? (
         <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="glass-card p-6 flex items-center justify-between border-blue-500/10 dark:border-blue-500/20">
+                <div className="glass-card p-6 flex items-center justify-between border-brand-500/10 dark:border-brand-500/20">
                     <div>
                         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Avg Participation</p>
-                        <p className="text-3xl font-bold text-blue-600">
+                        <p className="text-3xl font-bold text-brand-600">
                             {Math.round(data.quizStats.reduce((s, q) => s + q.participation, 0) / data.quizStats.length)}%
                         </p>
                     </div>
-                    <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">
-                        <Users className="w-6 h-6 text-blue-600" />
+                    <div className="p-3 bg-brand-100 dark:bg-brand-900/30 rounded-2xl">
+                        <Users className="w-6 h-6 text-brand-600" />
                     </div>
                 </div>
                 <div className="glass-card p-6 flex items-center justify-between border-emerald-500/10 dark:border-emerald-500/20">
@@ -109,9 +131,9 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
                 </div>
             </div>
 
-            <div className="glass-panel p-6 shadow-blue-500/5">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                 <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                    <TrendingUp className="w-5 h-5 text-brand-500" />
                     Quiz Performance Trends
                 </h3>
                 <div className="h-80 min-h-[320px] w-full">
@@ -156,9 +178,9 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
             </div>
         </div>
     ) : (
-        <div className="glass-panel p-6 shadow-blue-500/5">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
             <h3 className="font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
+                <TrendingUp className="w-5 h-5 text-brand-500" />
                 My Learning Progress
             </h3>
             <div className="h-64 min-h-[256px] w-full">

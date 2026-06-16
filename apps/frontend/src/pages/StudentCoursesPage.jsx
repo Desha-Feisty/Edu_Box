@@ -92,11 +92,11 @@ function StudentCoursesPage() {
                 </div>
 
                 {/* Join Course Section */}
-                <div className="glass-panel rounded-2xl mb-10 overflow-hidden shadow-blue-500/5">
+                <div className="bg-white dark:bg-base-200 rounded-2xl mb-10 border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
                     <div className="px-6 py-5 sm:p-8 flex flex-col md:flex-row md:items-center gap-6 justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-xl">
-                                <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="p-3 bg-brand-100 dark:bg-brand-900/40 rounded-xl">
+                                <Plus className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                             </div>
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -116,13 +116,13 @@ function StudentCoursesPage() {
                                 placeholder="e.g. MATH101"
                                 value={joinCode}
                                 onChange={(e) => setJoinCode(e.target.value)}
-                                className="input input-bordered flex-1 bg-white/50 dark:bg-base-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                className="input input-bordered flex-1 bg-white/50 dark:bg-base-300/50 focus:outline-none focus:ring-2 focus:ring-brand-500/50"
                                 required
                             />
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn btn-primary shadow-lg shadow-blue-500/20"
+                                className="btn-brand"
                             >
                                 {isLoading ? (
                                     <span className="loading loading-spinner loading-sm"></span>

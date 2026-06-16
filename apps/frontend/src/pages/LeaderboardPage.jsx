@@ -42,7 +42,7 @@ function LeaderboardPage() {
 
                 {/* Course Selector */}
                 {role !== "admin" && allCourses.length > 0 && (
-                    <div className="glass-panel rounded-2xl p-6 mb-8">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 mb-8">
                         <div className="flex flex-col md:flex-row md:items-center gap-4">
                             <span className="text-sm font-medium text-slate-500">
                                 Select Course:
@@ -64,7 +64,7 @@ function LeaderboardPage() {
 
                 {/* Leaderboard */}
                 {role === "admin" ? (
-                    <div className="glass-panel rounded-2xl p-8 text-center">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-8 text-center">
                         <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500">
                             Leaderboard is available for students and teachers.
@@ -76,7 +76,7 @@ function LeaderboardPage() {
                         isTeacher={isTeacher}
                     />
                 ) : (
-                    <div className="glass-panel rounded-2xl p-8 text-center border-dashed">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06] p-8 text-center">
                         <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
                         <p className="text-slate-500">
                             {role === "student"

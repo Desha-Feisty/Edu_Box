@@ -15,12 +15,12 @@ export default function CourseContentModal({
 
     return (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto w-full h-full">
-            <div className="glass-panel w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8 rounded-3xl animate-in zoom-in-95 duration-200 shadow-2xl flex flex-col">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] w-full max-w-4xl max-h-[90vh] overflow-y-auto my-8 animate-in zoom-in-95 duration-200 flex flex-col">
                 {/* Modal Header */}
                 <div className="sticky top-0 z-10 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-700/50 p-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-xl">
-                            <BookOpen className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                        <div className="p-3 bg-brand-100 dark:bg-brand-900/40 rounded-xl">
+                            <BookOpen className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
@@ -95,7 +95,7 @@ export default function CourseContentModal({
                                                             startingQuizId ===
                                                             quiz._id
                                                         }
-                                                        className="btn btn-primary btn-sm shadow-sm"
+                                                        className="btn-brand btn-sm"
                                                     >
                                                         {startingQuizId ===
                                                         quiz._id ? (

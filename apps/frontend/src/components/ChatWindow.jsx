@@ -100,7 +100,7 @@ function ChatWindow({ courseId, peerId, peerName, onClose }) {
 
     return (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end pointer-events-none mb-14 sm:mb-0">
-            <div className="w-[350px] h-[70vh] max-h-[500px] rounded-2xl glass-panel overflow-hidden pointer-events-auto flex flex-col shadow-blue-500/10">
+            <div className="w-[350px] h-[70vh] max-h-[500px] rounded-2xl bg-white dark:bg-base-200 border border-slate-200/60 dark:border-white/[0.06] overflow-hidden pointer-events-auto flex flex-col">
                 <div className="flex items-center justify-between gap-4 bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-md px-5 py-4 border-b border-slate-200 dark:border-slate-700/50">
                     <div>
                         <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -182,7 +182,7 @@ function ChatWindow({ courseId, peerId, peerName, onClose }) {
                         />
                         <button
                             onClick={handleSend}
-                            className="btn btn-primary btn-circle shadow-lg shadow-blue-500/30"
+                            className="btn-brand btn-circle"
                         >
                             <Send className="w-5 h-5" />
                         </button>

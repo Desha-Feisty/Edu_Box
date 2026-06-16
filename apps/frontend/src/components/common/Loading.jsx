@@ -11,7 +11,7 @@ export function LoadingSpinner({ size = "md", className = "" }) {
     return (
         <Loader2
             data-testid="loading-spinner"
-            className={`animate-spin text-blue-600 ${sizeClasses[size]} ${className}`}
+            className={`animate-spin text-brand-600 ${sizeClasses[size]} ${className}`}
         />
     );
 }
@@ -19,7 +19,7 @@ export function LoadingSpinner({ size = "md", className = "" }) {
 export function LoadingOverlay({ message = "Loading..." }) {
     return (
         <div data-testid="loading-overlay" className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="glass-panel p-8 flex flex-col items-center gap-4">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-8 flex flex-col items-center gap-4">
                 <LoadingSpinner size="lg" />
                 <p className="text-slate-600 dark:text-slate-300 font-medium">
                     {message}
@@ -43,7 +43,7 @@ export function LoadingPage({ message = "Loading..." }) {
 export function LoadingButton({ loading, children, className = "", ...props }) {
     return (
         <button
-            className={`btn btn-primary ${loading ? "loading" : ""} ${className}`}
+            className={`btn-brand ${loading ? "loading" : ""} ${className}`}
             disabled={loading}
             {...props}
         >

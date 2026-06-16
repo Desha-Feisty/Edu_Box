@@ -33,7 +33,7 @@ function Leaderboard({ courseId, isTeacher = false }) {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 glass-panel border border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-base-300/50">
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06]">
                 <span className="loading loading-spinner text-yellow-500 mb-4 loading-lg"></span>
                 <p className="text-sm font-medium text-slate-500 animate-pulse">Calculating rankings...</p>
             </div>
@@ -42,7 +42,7 @@ function Leaderboard({ courseId, isTeacher = false }) {
 
     if (error) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 glass-panel border border-red-200/50 dark:border-red-900/30 bg-red-50/10 dark:bg-red-900/5">
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-red-200/50 dark:border-red-900/30">
                 <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
                     <Star className="w-8 h-8 text-red-500" />
                 </div>
@@ -60,7 +60,7 @@ function Leaderboard({ courseId, isTeacher = false }) {
 
     if (leaderboard.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 glass-panel border-dashed border-slate-300 dark:border-slate-700">
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06]">
                 <Medal className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
                 <p className="text-slate-500 dark:text-slate-400">No scores recorded yet. Be the first to top the board!</p>
             </div>
@@ -169,7 +169,7 @@ function Leaderboard({ courseId, isTeacher = false }) {
 
             {/* Rest of the leaderboard */}
             {rest.length > 0 && (
-                <div className="glass-panel overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
                     <div className="divide-y divide-slate-100 dark:divide-slate-800">
                         {rest.map((entry, index) => (
                             <div key={index} className="flex items-center justify-between p-4 px-6 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import useTeacherStore from "../../stores/Teacherstore";
+import { ConfirmDialog } from "../common/Modal";
 import toast from "react-hot-toast";
 import {
     Calendar,
@@ -34,6 +35,7 @@ export default function CourseEventsTab({ courseId, _course }) {
     const [_isLoading, setIsLoading] = useState(true);
     const [showForm, setShowForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
+    const [deletingEventId, setDeletingEventId] = useState(null);
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -46,15 +48,6 @@ export default function CourseEventsTab({ courseId, _course }) {
         if (courseId) {
             listCourseCalendarEvents(courseId);
         }
-    }, [courseId, listCourseCalendarEvents]);
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (courseId) {
-                listCourseCalendarEvents(courseId);
-            }
-        }, 300);
-        return () => clearTimeout(timer);
     }, [courseId, listCourseCalendarEvents]);
 
     const resetForm = () => {
@@ -106,16 +99,23 @@ export default function CourseEventsTab({ courseId, _course }) {
         setShowForm(true);
     };
 
-    const handleDelete = async (eventId) => {
-        if (window.confirm("Are you sure you want to delete this event?")) {
-            try {
-                await deleteCalendarEvent(courseId, eventId);
-                toast.success("Event deleted successfully");
-            } catch {
-                toast.error("Failed to delete event");
-            }
+    const handleDeleteClick = async (eventId) => {
+        setDeletingEventId(eventId);
+    };
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingEventId) return;
+        const eventId = deletingEventId;
+        setDeletingEventId(null);
+        try {
+            await deleteCalendarEvent(courseId, eventId);
+            toast.success("Event deleted successfully");
+        } catch {
+            toast.error("Failed to delete event");
         }
     };
+
+    const handleDeleteCancel = () => setDeletingEventId(null);
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleString("en-US", {
@@ -142,7 +142,7 @@ export default function CourseEventsTab({ courseId, _course }) {
                 </h2>
                 <button
                     onClick={() => setShowForm(true)}
-                    className="btn btn-primary rounded-xl gap-2"
+                    className="btn-brand"
                 >
                     <Plus className="w-4 h-4" />
                     Add Event
@@ -232,7 +232,7 @@ export default function CourseEventsTab({ courseId, _course }) {
                             </div>
 
                             <div className="flex gap-2 pt-2">
-                                <button type="submit" className="btn btn-primary flex-1 rounded-xl">
+                                <button type="submit" className="btn-brand flex-1">
                                     <Save className="w-4 h-4 mr-2" />
                                     {editingEvent ? "Update" : "Create"}
                                 </button>
@@ -254,7 +254,7 @@ export default function CourseEventsTab({ courseId, _course }) {
                     </p>
                     <button
                         onClick={() => setShowForm(true)}
-                        className="btn btn-primary rounded-xl"
+                        className="btn-brand"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Your First Event
@@ -298,7 +298,7 @@ export default function CourseEventsTab({ courseId, _course }) {
                                         <Edit className="w-4 h-4" />
                                     </button>
                                     <button
-                                        onClick={() => handleDelete(event._id)}
+                                        onClick={() => handleDeleteClick(event._id)}
                                         className="btn btn-square btn-sm btn-ghost text-red-500"
                                     >
                                         <Trash2 className="w-4 h-4" />
@@ -309,6 +309,17 @@ export default function CourseEventsTab({ courseId, _course }) {
                     ))}
                 </div>
             )}
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                isOpen={!!deletingEventId}
+                onClose={handleDeleteCancel}
+                onConfirm={handleDeleteConfirm}
+                title="Delete Event?"
+                message="Are you sure you want to delete this event? This action cannot be undone."
+                confirmLabel="Delete"
+                variant="danger"
+            />
         </div>
     );
 }

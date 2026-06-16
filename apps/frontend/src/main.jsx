@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import "./index.css";
 import App from "./App.jsx";
 
@@ -11,7 +12,7 @@ try {
     if (typeof window !== "undefined" && window.localStorage) {
         const saved = window.localStorage.getItem("theme");
         const theme = (saved === "night" || saved === "winter") ? saved : "winter";
-        
+
         if (typeof document !== "undefined") {
             document.documentElement.setAttribute("data-theme", theme);
             if (theme === "night") {
@@ -35,7 +36,9 @@ if (!root) {
     createRoot(root).render(
         <StrictMode>
             <BrowserRouter>
-                <App />
+                <HelmetProvider>
+                    <App />
+                </HelmetProvider>
             </BrowserRouter>
         </StrictMode>,
     );

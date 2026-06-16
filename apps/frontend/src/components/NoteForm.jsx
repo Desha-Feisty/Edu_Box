@@ -38,7 +38,7 @@ export default function NoteForm({ courseId, onNoteCreated }) {
     };
 
     return (
-        <div className="glass-panel overflow-hidden border border-white/40 dark:border-slate-700/50 shadow-xl sticky top-28 rounded-3xl">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden sticky top-28">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-500"></div>
             <div className="p-6">
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-3">

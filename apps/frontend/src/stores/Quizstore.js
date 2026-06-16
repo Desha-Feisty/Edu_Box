@@ -398,6 +398,36 @@ const useQuizStore = create((set) => ({
         }
     },
 
+    generateFromFile: async (quizId, file, questionType = "mcq_single", count = 5, points = 1) => {
+        try {
+            set({ errMsg: null });
+            const token = useAuthStore.getState().token;
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("questionType", questionType);
+            formData.append("count", String(count));
+            formData.append("points", String(points));
+            const response = await axios.post(
+                `/api/quizzes/${quizId}/questions/generate-from-file`,
+                formData,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+            return response.data;
+        } catch (error) {
+            const errMsg =
+                error.response?.data?.errMsg ||
+                error.response?.data?.error ||
+                error.message ||
+                "Failed to generate questions from file";
+            set({ errMsg });
+            throw error;
+        }
+    },
+
     publishQuiz: async (quizId) => {
         try {
             set({ errMsg: null });

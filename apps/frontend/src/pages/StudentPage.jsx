@@ -189,14 +189,14 @@ function StudentPage() {
                 />
 
                 {/* Join Course Section */}
-                <div className="glass-panel rounded-2xl mb-10 overflow-hidden shadow-blue-500/5">
-                    <div className="px-6 py-5 sm:p-8 flex flex-col md:flex-row md:items-center gap-6 justify-between">
+                <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] mb-8">
+                    <div className="px-5 py-5 sm:p-6 flex flex-col md:flex-row md:items-center gap-5 justify-between">
                         <div className="flex items-center gap-4">
-                            <div className="p-3 bg-blue-100 dark:bg-blue-900/40 rounded-xl">
-                                <Plus className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                            <div className="p-3 bg-brand-100 dark:bg-brand-500/20 rounded-xl">
+                                <Plus className="w-6 h-6 text-brand-600 dark:text-brand-400" />
                             </div>
                             <div>
-                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                                     Join a New Course
                                 </h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -213,13 +213,13 @@ function StudentPage() {
                                 placeholder="e.g. MATH101"
                                 value={joinCode}
                                 onChange={(e) => setJoinCode(e.target.value)}
-                                className="input input-bordered flex-1 bg-white/50 dark:bg-base-300/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                                className="input w-full h-11 rounded-xl border-2 border-slate-300 dark:border-slate-600 bg-white dark:bg-base-300/60 px-4 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 transition-all"
                                 required
                             />
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="btn btn-primary shadow-lg shadow-blue-500/20"
+                                className="btn-brand px-6 py-2.5 text-sm"
                             >
                                 {isLoading ? (
                                     <span className="loading loading-spinner loading-sm"></span>
@@ -231,39 +231,27 @@ function StudentPage() {
                     </div>
                 </div>
 
-                {/* Modern Pill Tabs */}
-                <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-8 bg-slate-200/50 dark:bg-base-300/50 p-1.5 rounded-2xl w-max border border-slate-200 dark:border-slate-700/50">
+                {/* Pill Tabs */}
+                <div className="flex overflow-x-auto hide-scrollbar gap-1.5 mb-8 bg-slate-200/50 dark:bg-slate-800/30 p-1 rounded-xl w-max border border-slate-200 dark:border-slate-700/40">
                     {[
                         { id: "courses", label: "My Courses", icon: BookOpen },
-                        {
-                            id: "quizzes",
-                            label: "Available Quizzes",
-                            icon: Zap,
-                        },
-                        {
-                            id: "leaderboard",
-                            label: "Leaderboard",
-                            icon: Trophy,
-                        },
+                        { id: "quizzes", label: "Available Quizzes", icon: Zap },
+                        { id: "leaderboard", label: "Leaderboard", icon: Trophy },
                         { id: "grades", label: "My Grades", icon: TrendingUp },
-                        {
-                            id: "community",
-                            label: "Community Notes",
-                            icon: MessageSquare,
-                        },
+                        { id: "community", label: "Community Notes", icon: MessageSquare },
                         { id: "chats", label: "Chats", icon: MessageSquare },
                     ].map(({ id, label, icon: Icon }) => (
                         <button
                             key={id}
                             onClick={() => setActiveTab(id)}
-                            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 whitespace-nowrap ${
                                 activeTab === id
-                                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-md"
-                                    : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50"
+                                    ? "bg-white dark:bg-slate-700 text-brand-600 dark:text-brand-400 shadow-sm"
+                                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-white/50 dark:hover:bg-slate-700/40"
                             }`}
                         >
                             <Icon
-                                className={`w-4 h-4 ${activeTab === id ? "opacity-100" : "opacity-70"}`}
+                                className={`w-4 h-4 ${activeTab === id ? "opacity-100" : "opacity-60"}`}
                             />
                             {label}
                         </button>
@@ -292,8 +280,8 @@ function StudentPage() {
                 )}
 
                 {activeTab === "leaderboard" && (
-                    <div className="space-y-6 animate-in fade-in duration-500">
-                        <div className="glass-panel overflow-hidden rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="space-y-6">
+                        <div className="bg-white dark:bg-base-200 rounded-2xl p-5 border border-slate-200/60 dark:border-white/[0.06] flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <Trophy className="w-6 h-6 text-yellow-500" />
@@ -332,9 +320,9 @@ function StudentPage() {
                                 isTeacher={false}
                             />
                         ) : (
-                            <div className="text-center py-20 glass-panel border-dashed">
-                                <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                                <p className="text-slate-500">
+                            <div className="text-center py-16 bg-white dark:bg-base-200 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700/50">
+                                <Trophy className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+                                <p className="text-slate-500 dark:text-slate-400 font-medium">
                                     Join a course to see the leaderboard!
                                 </p>
                             </div>

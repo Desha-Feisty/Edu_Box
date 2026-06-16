@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { BookOpen, CheckCircle, Clock, Eye, Trash2, Plus } from "lucide-react";
+import { ConfirmDialog } from "../common/Modal";
 
 const formatDate = (dateString) => {
     if (!dateString) return "";
@@ -20,6 +22,33 @@ export default function CourseQuizzesTab({
     handleDeleteQuiz,
     courseId,
 }) {
+    const [confirmState, setConfirmState] = useState({ action: null, quizId: null });
+
+    const confirmConfig = {
+        publish: {
+            title: "Publish Quiz",
+            message: "Publish this quiz? Students will be able to see and attempt it.",
+            confirmLabel: "Publish",
+            variant: "success",
+            handler: (id) => { handlePublishQuiz(id); setConfirmState({ action: null, quizId: null }); },
+        },
+        unpublish: {
+            title: "Unpublish Quiz",
+            message: "Unpublish this quiz? Students will no longer be able to access it.",
+            confirmLabel: "Unpublish",
+            variant: "warning",
+            handler: (id) => { handleUnpublishQuiz(id); setConfirmState({ action: null, quizId: null }); },
+        },
+        delete: {
+            title: "Delete Quiz",
+            message: "Delete this quiz? This action cannot be undone.",
+            confirmLabel: "Delete",
+            variant: "danger",
+            handler: (id) => { handleDeleteQuiz(id); setConfirmState({ action: null, quizId: null }); },
+        },
+    };
+
+    const activeConfig = confirmConfig[confirmState.action];
     const sortedQuizzes = [...quizzes].sort((a, b) => {
         const dateA = new Date(a.openAt || 0);
         const dateB = new Date(b.openAt || 0);
@@ -35,7 +64,7 @@ export default function CourseQuizzesTab({
                 </h2>
                 <button
                     onClick={() => navigate(`/teacher/quiz/create?courseId=${courseId}`)}
-                    className="btn btn-primary rounded-xl shadow-lg shadow-blue-500/20 gap-2"
+                    className="btn-brand"
                 >
                     <Plus className="w-4 h-4" />
                     Create Quiz
@@ -51,7 +80,7 @@ export default function CourseQuizzesTab({
                     </p>
                     <button
                         onClick={() => navigate(`/teacher/quiz/create?courseId=${courseId}`)}
-                        className="btn btn-primary rounded-xl"
+                        className="btn-brand"
                     >
                         <Plus className="w-4 h-4 mr-2" />
                         Create Your First Quiz
@@ -109,11 +138,9 @@ export default function CourseQuizzesTab({
                                 <div className="flex flex-row sm:flex-col gap-2 shrink-0">
                                     {!quiz.published ? (
                                         <button
-                                            onClick={(e) => {
+                                                        onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (window.confirm("Publish this quiz? Students will be able to see and attempt it.")) {
-                                                    handlePublishQuiz(quiz._id);
-                                                }
+                                                setConfirmState({ action: "publish", quizId: quiz._id });
                                             }}
                                             className="btn btn-success btn-sm text-white shadow-md shadow-success/20 gap-2 w-full sm:w-auto hover:-translate-y-0.5 transition-transform"
                                         >
@@ -122,11 +149,9 @@ export default function CourseQuizzesTab({
                                         </button>
                                     ) : (
                                         <button
-                                            onClick={(e) => {
+                                                    onClick={(e) => {
                                                 e.stopPropagation();
-                                                if (window.confirm("Unpublish this quiz? Students will no longer be able to access it.")) {
-                                                    handleUnpublishQuiz(quiz._id);
-                                                }
+                                                setConfirmState({ action: "unpublish", quizId: quiz._id });
                                             }}
                                             className="btn btn-warning btn-sm text-warning-content shadow-md shadow-warning/20 gap-2 w-full sm:w-auto hover:-translate-y-0.5 transition-transform"
                                         >
@@ -144,9 +169,7 @@ export default function CourseQuizzesTab({
                                     <button
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            if (window.confirm("Delete this quiz? This action cannot be undone.")) {
-                                                handleDeleteQuiz(quiz._id);
-                                            }
+                                            setConfirmState({ action: "delete", quizId: quiz._id });
                                         }}
                                         className="btn btn-ghost text-red-500 dark:text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 btn-sm gap-2 w-full sm:w-auto"
                                     >
@@ -158,6 +181,19 @@ export default function CourseQuizzesTab({
                         </div>
                     </div>
                 ))
+            )}
+
+            {/* Confirmation Dialog */}
+            {activeConfig && (
+                <ConfirmDialog
+                    isOpen={confirmState.action !== null}
+                    onClose={() => setConfirmState({ action: null, quizId: null })}
+                    onConfirm={() => activeConfig.handler(confirmState.quizId)}
+                    title={activeConfig.title}
+                    message={activeConfig.message}
+                    confirmLabel={activeConfig.confirmLabel}
+                    variant={activeConfig.variant}
+                />
             )}
         </div>
     );

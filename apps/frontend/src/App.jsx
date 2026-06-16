@@ -40,6 +40,8 @@ const AdminTickets = lazy(() => import("./pages/admin/AdminTickets.jsx"));
 
 // New pages - lazy loaded
 const DashboardPage = lazy(() => import("./pages/DashboardPage.jsx"));
+const TeacherDashboard = lazy(() => import("./pages/TeacherDashboard.jsx"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard.jsx"));
 const StudentCoursesPage = lazy(() => import("./pages/StudentCoursesPage.jsx"));
 const StudentQuizzesPage = lazy(() => import("./pages/StudentQuizzesPage.jsx"));
 const StudentGradesPage = lazy(() => import("./pages/StudentGradesPage.jsx"));
@@ -72,13 +74,18 @@ function SocketListener() {
         }
     }, [token, connect]);
 
+    // Fetch notifications immediately for real-time badge update, except for chat (debounced)
+    const fetchNotifsDirect = () => {
+        useNotificationStore.getState().fetchNotifications();
+    };
+
     useEffect(() => {
         if (!socket) return;
 
         socket.on("new-quiz", (data) => {
             const token = useAuthStore.getState().token;
             if (!token) return;
-            debouncedFetchNotifications();
+            fetchNotifsDirect();
             useQuizStore.getState().fetchAvailableQuizzes();
             toast.success(`New Quiz: ${data.title} in ${data.courseTitle}`, {
                 duration: 5000,
@@ -89,7 +96,7 @@ function SocketListener() {
         socket.on("new-note", (data) => {
             const token = useAuthStore.getState().token;
             if (!token) return;
-            debouncedFetchNotifications();
+            fetchNotifsDirect();
             toast.success(`New Note: ${data.title} was posted`, {
                 duration: 4000,
                 icon: "📖",
@@ -139,7 +146,7 @@ function SocketListener() {
         socket.on("new-ticket", (data) => {
             const token = useAuthStore.getState().token;
             if (!token) return;
-            debouncedFetchNotifications();
+            fetchNotifsDirect();
             toast.success(`New Support Ticket from ${data.userName}: ${data.subject}`, {
                 duration: 5000,
                 icon: "🎫",
@@ -149,7 +156,7 @@ function SocketListener() {
         socket.on("ticket-response", (data) => {
             const token = useAuthStore.getState().token;
             if (!token) return;
-            debouncedFetchNotifications();
+            fetchNotifsDirect();
             toast.success(`Ticket Response: ${data.subject}`, {
                 duration: 5000,
                 icon: "💬",
@@ -159,7 +166,7 @@ function SocketListener() {
         socket.on("calendar-event", (data) => {
             const token = useAuthStore.getState().token;
             if (!token) return;
-            debouncedFetchNotifications();
+            fetchNotifsDirect();
             toast.success(`New Event: ${data.title} in ${data.courseTitle}`, {
                 duration: 5000,
                 icon: "📅",
@@ -184,6 +191,27 @@ function SocketListener() {
             });
         });
 
+        // Quiz-grade notifications
+        socket.on("quiz-graded", (data) => {
+            const token = useAuthStore.getState().token;
+            if (!token) return;
+            fetchNotifsDirect();
+            toast.success(`Grades Released: "${data.quizTitle}"`, {
+                duration: 5000,
+                icon: "📊",
+            });
+        });
+
+        socket.on("quiz-missed", (data) => {
+            const token = useAuthStore.getState().token;
+            if (!token) return;
+            fetchNotifsDirect();
+            toast(`Quiz Closed: "${data.quizTitle}" — you missed it`, {
+                duration: 5000,
+                icon: "⚠️",
+            });
+        });
+
         return () => {
             socket.off("new-quiz");
             socket.off("new-note");
@@ -193,6 +221,8 @@ function SocketListener() {
             socket.off("calendar-event");
             socket.off("calendar-event-updated");
             socket.off("calendar-event-deleted");
+            socket.off("quiz-graded");
+            socket.off("quiz-missed");
         };
     }, [socket, debouncedFetchNotifications, debouncedListRecentChats]);
 
@@ -245,7 +275,7 @@ function App() {
                     {/* Student Routes with App Layout */}
                     <Route element={<AppLayout />}>
                         {/* Dashboard - Rich widgets */}
-                        <Route path="/student" element={<DashboardPage />} />
+                        <Route path="/student" element={<StudentDashboard />} />
                         <Route path="/student/analytics" element={<AnalyticsPage />} />
 
                         {/* Standalone Pages */}
@@ -262,7 +292,7 @@ function App() {
                     {/* Teacher Routes with App Layout */}
                     <Route element={<AppLayout />}>
                         {/* Dashboard - Rich widgets */}
-                        <Route path="/teacher" element={<DashboardPage />} />
+                        <Route path="/teacher" element={<TeacherDashboard />} />
                         <Route path="/teacher/analytics" element={<AnalyticsPage />} />
 
                         {/* Standalone Pages */}

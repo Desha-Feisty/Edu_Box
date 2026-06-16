@@ -135,7 +135,7 @@ function StudentCalendarPage() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Calendar */}
-                    <div className="lg:col-span-2 glass-panel p-6">
+                    <div className="lg:col-span-2 bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -170,7 +170,7 @@ function StudentCalendarPage() {
                                         className={`min-h-[80px] p-2 rounded-xl border ${
                                             day
                                                 ? isToday(day)
-                                                    ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20"
+                                                    ? "border-brand-500 bg-brand-50 dark:bg-brand-900/20"
                                                     : "border-slate-200 dark:border-slate-700/50"
                                                 : "border-transparent"
                                         }`}
@@ -179,7 +179,7 @@ function StudentCalendarPage() {
                                             <>
                                                 <div className={`text-sm font-medium mb-1 ${
                                                     isToday(day)
-                                                        ? "text-blue-600 dark:text-blue-400"
+                                                        ? "text-brand-600 dark:text-brand-400"
                                                         : "text-slate-700 dark:text-slate-300"
                                                 }`}>
                                                     {day.getDate()}
@@ -208,9 +208,9 @@ function StudentCalendarPage() {
                     </div>
 
                     {/* Upcoming Events */}
-                    <div className="glass-panel p-6">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6">
                         <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-                            <Calendar className="w-5 h-5 text-blue-500" />
+                            <Calendar className="w-5 h-5 text-brand-500" />
                             Upcoming
                         </h3>
                         <div className="space-y-4">

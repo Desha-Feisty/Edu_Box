@@ -93,14 +93,14 @@ function AdminUsers() {
     return (
         <div className="space-y-6">
             {/* Search and Action Bar */}
-            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between glass-panel p-4">
+            <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-4">
                 <div className="flex flex-1 gap-4 w-full">
                     <div className="relative flex-1">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                         <input 
                             type="text" 
                             placeholder="Search by name or email..." 
-                            className="input input-bordered w-full pl-12 bg-white/50 dark:bg-base-300/50 rounded-xl focus:ring-2 focus:ring-blue-500/50"
+                            className="input input-bordered w-full pl-12 bg-white/50 dark:bg-base-300/50 rounded-xl focus:ring-2 focus:ring-brand-500/50"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                         />
@@ -121,7 +121,7 @@ function AdminUsers() {
                 </div>
                 <button 
                     onClick={() => setIsAddUserOpen(true)}
-                    className="btn btn-primary rounded-xl px-6 w-full lg:w-auto"
+                    className="btn-brand"
                 >
                     <UserPlus className="w-5 h-5 mr-2" />
                     Add User
@@ -129,7 +129,7 @@ function AdminUsers() {
             </div>
 
             {/* Users Table */}
-            <div className="glass-panel overflow-hidden border border-slate-200 dark:border-slate-700/50">
+            <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="table w-full">
                         <thead className="bg-slate-50 dark:bg-base-300 text-slate-500 uppercase text-[11px] font-black tracking-widest border-b border-slate-100 dark:border-slate-800">
@@ -227,7 +227,7 @@ function AdminUsers() {
             {/* Add User Modal */}
             {isAddUserOpen && (
                 <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="glass-panel w-full max-w-md p-8 animate-in zoom-in-95 duration-200">
+                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-8 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-black text-slate-900 dark:text-white">Create New Account</h2>
                             <button onClick={() => setIsAddUserOpen(false)} className="btn btn-ghost btn-circle btn-sm">
@@ -276,7 +276,7 @@ function AdminUsers() {
                                             onClick={() => setNewUser({...newUser, role})}
                                             className={`p-3 rounded-xl border-2 transition-all font-bold capitalize ${
                                                 newUser.role === role 
-                                                ? 'border-blue-500 bg-blue-50 text-blue-600 dark:bg-blue-900/20' 
+                                                ? 'border-brand-500 bg-brand-50 text-brand-600 dark:bg-brand-900/20' 
                                                 : 'border-slate-100 bg-slate-50 text-slate-400 dark:bg-slate-800 dark:border-slate-700'
                                             }`}
                                         >
@@ -285,7 +285,7 @@ function AdminUsers() {
                                     ))}
                                 </div>
                             </div>
-                            <button type="submit" className="btn btn-primary w-full rounded-xl h-12 mt-6"> Create Account </button>
+                            <button type="submit" className="btn-brand w-full mt-6"> Create Account </button>
                         </form>
                     </div>
                 </div>

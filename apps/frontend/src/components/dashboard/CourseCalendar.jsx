@@ -15,42 +15,45 @@ import {
     ChevronRight,
 } from "lucide-react";
 
-function CourseCalendar({ events = [], onEventClick }) {
+function CourseCalendar({ events = [], onEventClick, loading = false }) {
     const [calendarRef, setCalendarRef] = useState(null);
     const [currentDate, setCurrentDate] = useState(new Date());
 
     // Process events for FullCalendar
     const processedEvents = useMemo(() => {
         return events.map((event) => {
-            const isExpired = isPast(new Date(event.closeAt || event.endAt));
             const isCompleted = event.completed === true;
-            const isOverdue = isExpired && !isCompleted;
-            
+            const isOverdue = isPast(new Date(event.closeAt || event.endAt)) && !isCompleted;
+
+            // Differentiate event type for color coding
+            const eventCategory = event.type === "calendar-event"
+                ? event.eventType || "custom"
+                : "quiz";
+
+            const colorMap = {
+                quiz: "#8B5CF6",
+                deadline: "#F97316",
+                meeting: "#3B82F6",
+                announcement: "#F59E0B",
+                custom: "#6B7280",
+            };
+
+            const baseColor = isOverdue ? "#EF4444" : isCompleted ? "#22C55E" : colorMap[eventCategory] || "#8B5CF6";
+
             return {
                 id: event._id,
                 title: event.title,
                 start: event.openAt || event.startAt,
                 end: event.closeAt || event.endAt,
-                backgroundColor: isOverdue 
-                    ? "#EF4444" 
-                    : isCompleted 
-                        ? "#22C55E" 
-                        : isExpired 
-                            ? "#22C55E" 
-                            : "#8B5CF6",
-                borderColor: isOverdue 
-                    ? "#EF4444" 
-                    : isCompleted 
-                        ? "#22C55E" 
-                        : isExpired 
-                            ? "#22C55E" 
-                            : "#8B5CF6",
+                backgroundColor: baseColor,
+                borderColor: baseColor,
                 extendedProps: {
                     type: event.type || "quiz",
+                    eventType: event.eventType,
                     course: event.course,
                     duration: event.durationMinutes,
                     completed: isCompleted,
-                    status: isOverdue ? "overdue" : isCompleted ? "completed" : isExpired ? "completed" : "upcoming",
+                    status: isOverdue ? "overdue" : isCompleted ? "completed" : "upcoming",
                 },
             };
         });
@@ -92,12 +95,20 @@ function CourseCalendar({ events = [], onEventClick }) {
     };
 
     const getEventContent = (eventInfo) => {
-        const { status, type } = eventInfo.event.extendedProps;
+        const { status, type, eventType } = eventInfo.event.extendedProps;
         
+        const colorMap = {
+            quiz: "bg-violet-500",
+            deadline: "bg-orange-500",
+            meeting: "bg-blue-500",
+            announcement: "bg-amber-500",
+            custom: "bg-slate-500",
+        };
+
         const statusColors = {
             overdue: "bg-red-500",
             completed: "bg-green-500",
-            upcoming: "bg-violet-500",
+            upcoming: colorMap[type === "calendar-event" ? (eventType || "custom") : "quiz"] || "bg-violet-500",
         };
 
         const statusLabels = {
@@ -130,6 +141,33 @@ function CourseCalendar({ events = [], onEventClick }) {
         );
     };
 
+    if (loading) {
+        return (
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white dark:bg-base-200 rounded-3xl shadow-md"
+            >
+                <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                        <div className="space-y-2">
+                            <div className="h-5 w-44 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                            <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded animate-pulse" />
+                        </div>
+                    </div>
+                </div>
+                <div className="p-4">
+                    <div className="grid grid-cols-7 gap-1">
+                        {Array.from({ length: 35 }).map((_, i) => (
+                            <div key={i} className="aspect-square bg-slate-100 dark:bg-slate-800/50 rounded animate-pulse" />
+                        ))}
+                    </div>
+                </div>
+            </motion.div>
+        );
+    }
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -154,18 +192,18 @@ function CourseCalendar({ events = [], onEventClick }) {
                     </div>
 
                     {/* Legend */}
-                    <div className="hidden md:flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-violet-500" />
-                            <span className="text-sm text-slate-600 dark:text-slate-400">Upcoming</span>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-violet-500" />
+                            <span className="text-xs text-slate-600 dark:text-slate-400">Upcoming</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-green-500" />
-                            <span className="text-sm text-slate-600 dark:text-slate-400">Completed</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                            <span className="text-xs text-slate-600 dark:text-slate-400">Done</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="w-3 h-3 rounded-full bg-red-500" />
-                            <span className="text-sm text-slate-600 dark:text-slate-400">Overdue</span>
+                        <div className="flex items-center gap-1.5">
+                            <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                            <span className="text-xs text-slate-600 dark:text-slate-400">Overdue</span>
                         </div>
                     </div>
                 </div>
@@ -250,7 +288,7 @@ function CourseCalendar({ events = [], onEventClick }) {
                                             {event.title}
                                         </p>
                                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            {event.course?.title} • {event.durationMinutes} min
+                                            {event.course?.title ?? "Course"} • {event.durationMinutes ?? "--"} min
                                         </p>
                                     </div>
                                     <div className="text-right shrink-0">
