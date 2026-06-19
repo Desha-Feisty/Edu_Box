@@ -113,9 +113,12 @@ export default function GradeModal({ attemptId, onClose, onUpdated }) {
                             { headers: { Authorization: `Bearer ${token}` } }
                           );
                           toast.success('Contest resolved');
-                          // Re-fetch to update contest status
+                          // Re-fetch to update contest status and attempt totals
                           const res = await axios.get(`/api/attempts/${attemptId}`, { headers: { Authorization: `Bearer ${token}` } });
+                          setAttempt(res.data.attempt);
                           setResponses(res.data.responses || []);
+                          if (onUpdated) onUpdated({ attemptId, index: idx, score: scores[idx] ?? r.pointsAwarded ?? 0 });
+                          telemetry.track(EVENTS.TEACHER_GRADE_SUBMIT, { attemptId, responseIndex: idx, score: scores[idx] ?? r.pointsAwarded ?? 0, resolved: true });
                         } catch (_err) {
                           toast.error('Failed to resolve contest');
                         }

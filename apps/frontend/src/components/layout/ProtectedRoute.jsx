@@ -23,9 +23,9 @@ export default function ProtectedRoute({ allowedRoles, children }) {
     }
 
     // Role check present but user doesn't have required role → redirect to their home
-    if (allowedRoles && allowedRoles.length > 0 && user?.role) {
-        if (!allowedRoles.includes(user.role)) {
-            return <Navigate to={`/${user.role}`} replace />;
+    if (allowedRoles && allowedRoles.length > 0) {
+        if (!user?.role || !allowedRoles.includes(user.role)) {
+            return <Navigate to={user?.role ? `/${user.role}` : "/"} replace />;
         }
     }
 

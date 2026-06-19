@@ -29,10 +29,19 @@ export async function exportBlob(url, filename, token) {
  * @param {string} filename - Desired download filename
  * @param {Array<string>} [headers] - Optional column headers (first row)
  */
+const escapeCSV = (field) => {
+    if (field === null || field === undefined) return '';
+    const str = String(field);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+        return '"' + str.replace(/"/g, '""') + '"';
+    }
+    return str;
+};
+
 export function exportData(rows, filename, headers) {
     const csvContent = [
-        headers ? headers.join(",") : "",
-        ...rows.map((row) => row.join(",")),
+        headers ? headers.map(escapeCSV).join(",") : "",
+        ...rows.map((row) => row.map(escapeCSV).join(",")),
     ]
         .filter(Boolean)
         .join("\n");

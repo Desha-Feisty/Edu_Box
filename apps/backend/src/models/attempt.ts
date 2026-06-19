@@ -6,7 +6,7 @@ export interface IResponse {
     question: Types.ObjectId;
     selectedChoiceIds: Types.ObjectId[];
     textAnswer?: string;
-    aiScore?: number;
+    aiScore?: number | null;
     aiFeedback?: string;
     pointsAwarded?: number;
     contestReason?: string;

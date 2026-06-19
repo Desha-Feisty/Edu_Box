@@ -892,8 +892,8 @@ const generateQuestionsFromFile = async (req: AuthRequest, res: Response) => {
     try {
         const { id: quizId } = req.params;
         const { questionType = "mcq_single" } = req.body;
-        const count = Number(req.body.count) || 5;
-        const points = Number(req.body.points) || 1;
+        const countRaw = req.body.count;
+        const pointsRaw = req.body.points;
 
         // Require file first so cleanup is always in scope
         if (!req.file) {
@@ -906,6 +906,17 @@ const generateQuestionsFromFile = async (req: AuthRequest, res: Response) => {
         // Define cleanup immediately so all early returns are covered
         const cleanup = () => cleanupFile(filePath);
 
+        // Validate count and points before Number() coercion
+        if (countRaw !== undefined && isNaN(Number(countRaw))) {
+            cleanup(); return res.status(400).json({ errMsg: "count must be a number" });
+        }
+        if (pointsRaw !== undefined && isNaN(Number(pointsRaw))) {
+            cleanup(); return res.status(400).json({ errMsg: "points must be a number" });
+        }
+
+        const count = Number(countRaw) || 5;
+        const points = Number(pointsRaw) || 1;
+
         // Early validation
         if (!quizId) { cleanup(); return res.status(400).json({ errMsg: "invalid quiz id" }); }
         if (count > 20) { cleanup(); return res.status(400).json({ errMsg: "max 20 questions allowed" }); }
@@ -913,7 +924,7 @@ const generateQuestionsFromFile = async (req: AuthRequest, res: Response) => {
             cleanup();
             return res.status(400).json({ errMsg: "questionType must be 'mcq_single' or 'written'" });
         }
-        if (typeof points !== "number" || points < 1 || points > 10) {
+        if (points < 1 || points > 10) {
             cleanup();
             return res.status(400).json({ errMsg: "points must be a number between 1 and 10" });
         }

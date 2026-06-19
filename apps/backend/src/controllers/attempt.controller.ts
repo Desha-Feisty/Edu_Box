@@ -408,7 +408,7 @@ async function gradeWrittenResponsesAsync(attemptId: string): Promise<void> {
                     total += gradingResult.score;
                 } catch (error) {
                     console.error("AI grading failed for question:", q._id, error);
-                    resp.aiScore = 0;
+                    resp.aiScore = null;
                     resp.pointsAwarded = 0;
                     resp.aiFeedback = "AI grading failed. Please contact your teacher.";
                 }
@@ -1342,6 +1342,7 @@ const getUngradedAttempts = async (req: AuthRequest, res: Response) => {
                         return q?.questionType === "written"
                             && r.textAnswer?.trim()
                             && r.contestStatus !== "pending"
+                            && r.contestStatus !== "resolved"
                             && (r.aiScore === null || r.aiScore === undefined);
                     })
                     .map((r, idx) => ({
@@ -1422,7 +1423,8 @@ const updateResponseScore = async (req: AuthRequest, res: Response) => {
         
         // Update the score (this overrides AI score for written questions)
         resp.pointsAwarded = score;
-        
+        resp.aiScore = score;
+
         // Optionally update feedback
         if (feedback !== undefined) {
             resp.aiFeedback = feedback;
@@ -1445,7 +1447,16 @@ const updateResponseScore = async (req: AuthRequest, res: Response) => {
         
         attempt.score = total;
         attempt.maxScore = maxScore;
-        if (attempt.status !== "graded") {
+
+        // Only mark as graded if all written responses have been scored
+        const allWrittenScored = attempt.responses.every(r => {
+            const q = r.question as any;
+            if (q?.questionType === "written") {
+                return r.aiScore !== null && r.aiScore !== undefined;
+            }
+            return true;
+        });
+        if (allWrittenScored && attempt.status !== "graded") {
             attempt.status = "graded";
         }
         await attempt.save();

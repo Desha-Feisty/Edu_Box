@@ -118,8 +118,8 @@ export default function CourseEventsTab({ courseId, _course }) {
         try {
             await deleteCalendarEvent(courseId, eventId);
             toast.success("Event deleted successfully");
-        } catch {
-            const errMsg = "Failed to delete event";
+        } catch (err) {
+            const errMsg = err.response?.data?.errMsg || "Failed to delete event";
             toast.error(errMsg);
             setError(errMsg);
         }

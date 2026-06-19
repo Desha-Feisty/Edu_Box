@@ -54,13 +54,16 @@ export function formatTimeAgo(dateString) {
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const calendarDayDiff = Math.floor((nowDate - targetDate) / 86400000);
 
     if (diffMins < 1) return "Just now";
     if (diffMins < 60) return `${diffMins} min ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (calendarDayDiff === 0) return `${diffHours} hour${diffHours > 1 ? "s" : ""} ago`;
+    if (calendarDayDiff === 1) return "Yesterday";
+    if (calendarDayDiff < 7) return `${calendarDayDiff} days ago`;
     return formatDateShort(dateString);
 }
 
@@ -71,7 +74,9 @@ export function formatRelative(dateString) {
     if (!dateString) return "";
     const now = new Date();
     const date = new Date(dateString);
-    const diffDays = Math.floor((now - date) / 86400000);
+    const nowDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.floor((nowDate - targetDate) / 86400000);
 
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";

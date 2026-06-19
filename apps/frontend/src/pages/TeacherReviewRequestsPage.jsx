@@ -63,7 +63,7 @@ export default function TeacherReviewRequestsPage() {
   const isLoading = activeTab === 'ungraded' ? loadingUngraded : loadingContested;
 
   // ── Response key helpers ───────────────────────────────────────────
-  const getRespKey = (attemptId, resp) => `${attemptId}-${resp.index}`;
+  const getRespKey = (attemptId, resp, idx) => `${attemptId}-${resp.index ?? idx}`;
   const getScore = (key, resp) => scores[key] ?? resp.pointsAwarded ?? 0;
   const getFeedback = (key, resp) => feedbacks[key] ?? resp.aiFeedback ?? '';
 
@@ -119,7 +119,7 @@ export default function TeacherReviewRequestsPage() {
 
   // ── Render helpers ─────────────────────────────────────────────────
   const renderResponseCard = (attempt, resp, idx) => {
-    const key = getRespKey(attempt._id, resp);
+    const key = getRespKey(attempt._id, resp, idx);
     const isSaving = savingKey === key;
     const isContestTab = activeTab === 'contested';
     const isPending = resp.contestStatus === 'pending';
