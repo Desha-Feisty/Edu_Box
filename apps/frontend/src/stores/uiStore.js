@@ -14,6 +14,9 @@ const useUIStore = create(
             isSidebarOpen: true,
             toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
             setSidebarOpen: (isOpen) => set({ isSidebarOpen: isOpen }),
+            isSidebarPinned: false,
+            toggleSidebarPin: () => set((state) => ({ isSidebarPinned: !state.isSidebarPinned })),
+            setSidebarPinned: (pinned) => set({ isSidebarPinned: pinned }),
 
             // Loading states
             globalLoading: false,
@@ -47,6 +50,7 @@ const useUIStore = create(
             name: "ui-storage",
             partialize: (state) => ({
                 isSidebarOpen: state.isSidebarOpen,
+                isSidebarPinned: state.isSidebarPinned,
             }),
         },
     ),

@@ -1,5 +1,6 @@
 import { Award, Lock } from "lucide-react";
 import AnalyticsDashboard from "../AnalyticsDashboard";
+import { EmptyState } from "../common/EmptyState";
 
 export default function StudentGradesTab({
     gradesLoading,
@@ -20,7 +21,7 @@ export default function StudentGradesTab({
     };
 
     return (
-        <div className="glass-panel rounded-2xl overflow-hidden shadow-sm">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] overflow-hidden shadow-sm">
             <div className="p-6 md:p-8">
                 <h2 className="text-2xl font-bold mb-6 flex items-center gap-3 text-slate-900 dark:text-white">
                     <div className="p-2 bg-emerald-100 dark:bg-emerald-900/40 rounded-lg">
@@ -44,12 +45,11 @@ export default function StudentGradesTab({
                         <span>{gradesError}</span>
                     </div>
                 ) : myGrades.length === 0 ? (
-                    <div className="text-center py-16 bg-slate-50/50 dark:bg-base-200/50 rounded-2xl border border-slate-200 border-dashed dark:border-slate-700">
-                        <Award className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                            No graded attempts available yet.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={Award}
+                        title="No grades yet"
+                        description="No graded attempts available yet."
+                    />
                 ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700/50">
                         <table className="table w-full">

@@ -11,6 +11,7 @@ import {
     ChevronLeft,
     ChevronRight,
 } from "lucide-react";
+import { SkeletonTable } from "../../components/common/Skeleton";
 
 function AdminUsers() {
     const { token } = useAuthStore();
@@ -143,8 +144,8 @@ function AdminUsers() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan="4" className="px-6 py-8 text-center">
-                                        <span className="loading loading-spinner loading-md text-blue-500"></span>
+                                    <td colSpan="4" className="px-6 py-8">
+                                        <SkeletonTable rows={5} />
                                     </td>
                                 </tr>
                             ) : users.length === 0 ? (

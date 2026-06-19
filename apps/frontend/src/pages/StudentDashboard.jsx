@@ -196,7 +196,7 @@ export default function StudentDashboard() {
                     className="w-full flex items-center gap-4 p-4 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors text-left disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     <div className="w-11 h-11 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
-                      <Zap className="w-5.5 h-5.5 text-brand-600 dark:text-brand-400" />
+                      <Zap className="w-[22px] h-[22px] text-brand-600 dark:text-brand-400" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-slate-900 dark:text-white truncate">{quiz.title}</p>

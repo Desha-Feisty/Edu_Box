@@ -4,11 +4,11 @@ import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import axios from "axios";
 import toast from "react-hot-toast";
-import PageWrapper from "../components/layout/PageWrapper";
-import Navbar from "../components/layout/Navbar";
 import StudentCoursesTab from "../components/student/StudentCoursesTab";
 import ChatWindow from "../components/ChatWindow";
-import { Plus } from "lucide-react";
+import NoteCard from "../components/NoteCard";
+import { Modal } from "../components/common/Modal";
+import { Plus, BookOpen } from "lucide-react";
 
 function StudentCoursesPage() {
     const { token } = useAuthStore();
@@ -17,9 +17,9 @@ function StudentCoursesPage() {
 
     const [joinCode, setJoinCode] = useState("");
     const [isLoading, setIsLoading] = useState(false);
-    const [viewContentCourse, setViewContentCourse] = useState(null); // eslint-disable-line no-unused-vars
-    const [courseContentNotes, setCourseContentNotes] = useState([]); // eslint-disable-line no-unused-vars
-    const [contentNotesLoading, setContentNotesLoading] = useState(false); // eslint-disable-line no-unused-vars
+    const [contentModalCourse, setContentModalCourse] = useState(null);
+    const [contentNotes, setContentNotes] = useState([]);
+    const [contentNotesLoading, setContentNotesLoading] = useState(false);
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [chatCourseId, setChatCourseId] = useState(null);
     const [chatPeerId, setChatPeerId] = useState(null);
@@ -29,10 +29,10 @@ function StudentCoursesPage() {
         setContentNotesLoading(true);
         try {
             const notes = await listCourseNotes(courseId);
-            setCourseContentNotes(notes);
+            setContentNotes(notes);
         } catch (err) {
             console.error("Failed to load course notes:", err);
-            setCourseContentNotes([]);
+            setContentNotes([]);
         } finally {
             setContentNotesLoading(false);
         }
@@ -80,7 +80,7 @@ function StudentCoursesPage() {
     };
 
     return (
-        <PageWrapper>
+        <>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -141,10 +141,38 @@ function StudentCoursesPage() {
                     setChatPeerId={setChatPeerId}
                     setChatPeerName={setChatPeerName}
                     setIsChatOpen={setIsChatOpen}
-                    setViewContentCourse={setViewContentCourse}
+                    setViewContentCourse={setContentModalCourse}
                     loadCourseContentNotes={loadCourseContentNotes}
                 />
             </main>
+
+            {/* View Content Modal */}
+            <Modal
+                isOpen={!!contentModalCourse}
+                onClose={() => setContentModalCourse(null)}
+                title={contentModalCourse?.title || "Course Content"}
+                size="xl"
+            >
+                {contentNotesLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                        <span className="loading loading-spinner loading-lg text-brand-500" />
+                    </div>
+                ) : contentNotes.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-4">
+                        <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <BookOpen className="w-8 h-8 text-slate-400" />
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 font-medium">No content available yet</p>
+                        <p className="text-sm text-slate-400 dark:text-slate-500">Check back later for notes and materials</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-4">
+                        {contentNotes.map((note) => (
+                            <NoteCard key={note._id} note={note} isTeacher={false} />
+                        ))}
+                    </div>
+                )}
+            </Modal>
 
             {isChatOpen && chatCourseId && chatPeerId && (
                 <ChatWindow
@@ -159,7 +187,7 @@ function StudentCoursesPage() {
                     }}
                 />
             )}
-        </PageWrapper>
+        </>
     );
 }
 

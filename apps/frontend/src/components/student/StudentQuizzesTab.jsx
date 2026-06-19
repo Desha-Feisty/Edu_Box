@@ -1,5 +1,6 @@
 import { Zap, Clock, BookMarked, CheckCircle, Calendar, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { EmptyState } from "../common/EmptyState";
 
 export default function StudentQuizzesTab({
     availableQuizzes,
@@ -16,27 +17,13 @@ export default function StudentQuizzesTab({
     return (
         <div>
             {availableQuizzes.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 px-4">
-                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-violet-100 to-blue-100 dark:from-violet-900/30 dark:to-blue-900/30 flex items-center justify-center mb-6 shadow-inner">
-                        <Sparkles className="w-10 h-10 text-violet-500 dark:text-violet-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">
-                        No Quizzes Available
-                    </h3>
-                    <p className="text-slate-500 dark:text-slate-400 text-center max-w-sm mb-8">
-                        There are no quizzes available to take right now. 
-                        Check back later or explore your courses for upcoming quizzes.
-                    </p>
-                    <div className="flex gap-3">
-                        <button
-                            onClick={() => navigate("/student/courses")}
-                            className="btn btn-outline gap-2 rounded-xl border-slate-300 dark:border-slate-600"
-                        >
-                            <Calendar className="w-4 h-4" />
-                            Browse Courses
-                        </button>
-                    </div>
-                </div>
+                <EmptyState
+                    icon={Sparkles}
+                    title="No Quizzes Available"
+                    description="There are no quizzes available to take right now. Check back later or explore your courses for upcoming quizzes."
+                    actionLabel="Browse Courses"
+                    onAction={() => navigate("/student/courses")}
+                />
             ) : (
                 <div className="space-y-4">
                     {availableQuizzes.map((quiz) => {
@@ -46,7 +33,7 @@ export default function StudentQuizzesTab({
                         return (
                             <div
                                 key={quiz._id}
-                                className={`glass-card transition-all ${isLocked ? "opacity-75" : ""}`}
+                                className={`bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] transition-all ${isLocked ? "opacity-75" : ""}`}
                             >
                                 <div className="card-body p-5">
                                     <div className="flex items-start justify-between gap-4">

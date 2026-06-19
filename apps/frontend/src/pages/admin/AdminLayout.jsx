@@ -2,7 +2,6 @@ import { useState, useEffect, useLayoutEffect } from "react";
 import { Outlet, NavLink, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuthStore from "../../stores/Authstore";
-import PageWrapper from "../../components/layout/PageWrapper";
 import { useAdmin } from "../../contexts/AdminContext";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { 
@@ -86,18 +85,15 @@ function AdminLayout() {
 
     if (contextLoading && !isInitializing) {
         return (
-            <PageWrapper>
-                <div className="flex flex-col items-center justify-center min-h-[60vh]">
-                    <span className="loading loading-spinner loading-lg text-blue-600"></span>
-                    <p className="mt-4 text-slate-500 font-medium">Initializing Management Portal...</p>
-                </div>
-            </PageWrapper>
+            <div className="flex flex-col items-center justify-center min-h-[60vh]">
+                <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                <p className="mt-4 text-slate-500 font-medium">Initializing Management Portal...</p>
+            </div>
         );
     }
 
     // Provide context immediately, even if some values are empty
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 w-full animate-in fade-in duration-500">
                 
                 {/* Header Area */}
@@ -135,7 +131,6 @@ function AdminLayout() {
                 {/* Pass shared data to child routes */}
                 <Outlet context={sharedData} />
             </main>
-        </PageWrapper>
     );
 }
 
@@ -153,17 +148,22 @@ export function AdminOverviewContent({ stats, enhancedStats, systemHealth }) {
                     { label: "Total Courses", value: stats.totalCourses, icon: BookOpen, color: "emerald" },
                     { label: "Total Quizzes", value: stats.totalQuizzes, icon: Activity, color: "amber" },
                     { label: "Quizzes Solved", value: stats.completedAttempts, icon: BarChart3, color: "purple" },
-                ].map((stat, i) => (
-                    <div key={i} className={`bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] border-l-4 border-l-${stat.color}-500 p-6 relative overflow-hidden group`}>
+                ].map((stat, i) => {
+                    const borderColor = { blue: "border-l-blue-500", emerald: "border-l-emerald-500", amber: "border-l-amber-500", purple: "border-l-purple-500" }[stat.color] || "border-l-blue-500";
+                    const bgColor = { blue: "bg-blue-500/10", emerald: "bg-emerald-500/10", amber: "bg-amber-500/10", purple: "bg-purple-500/10" }[stat.color] || "bg-blue-500/10";
+                    const iconColor = { blue: "text-blue-600 dark:text-blue-400", emerald: "text-emerald-600 dark:text-emerald-400", amber: "text-amber-600 dark:text-amber-400", purple: "text-purple-600 dark:text-purple-400" }[stat.color] || "text-blue-600 dark:text-blue-400";
+                    return (
+                    <div key={i} className={`bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] ${borderColor} p-6 relative overflow-hidden group`}>
                         <div className="flex items-center justify-between mb-4">
-                            <div className={`p-3 bg-${stat.color}-500/10 rounded-2xl group-hover:scale-110 transition-transform`}>
-                                <stat.icon className={`w-6 h-6 text-${stat.color}-600 dark:text-${stat.color}-400`} />
+                            <div className={`p-3 ${bgColor} rounded-2xl group-hover:scale-110 transition-transform`}>
+                                <stat.icon className={`w-6 h-6 ${iconColor}`} />
                             </div>
                         </div>
                         <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">{stat.label}</h3>
                         <div className="text-3xl font-black text-slate-900 dark:text-white mt-1">{stat.value}</div>
                     </div>
-                ))}
+                    );
+                })}
             </div>
 
             {/* Recent Activity / Secondary Stats */}

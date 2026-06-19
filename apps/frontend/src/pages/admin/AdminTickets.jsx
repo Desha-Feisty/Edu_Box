@@ -277,7 +277,7 @@ function AdminTickets() {
                                     {selectedTicket.status === "open" && !respondingTo && (
                                         <button
                                             onClick={() => setRespondingTo(selectedTicket._id)}
-                                            className="btn-brand btn-sm mt-6"
+                                            className="btn btn-brand btn-sm mt-6"
                                         >
                                             <Send className="w-4 h-4 mr-2" />
                                             Respond
@@ -299,7 +299,7 @@ function AdminTickets() {
                                                     onClick={() =>
                                                         handleRespond(selectedTicket._id)
                                                     }
-                                                    className="btn-brand btn-sm"
+                                                    className="btn btn-brand btn-sm"
                                                 >
                                                     <Send className="w-4 h-4 mr-2" />
                                                     Send Response

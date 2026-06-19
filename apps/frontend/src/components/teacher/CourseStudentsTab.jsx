@@ -1,4 +1,6 @@
 import { Users, MessageSquare, UserX } from "lucide-react";
+import { SkeletonList } from "../common/Skeleton";
+import { EmptyState } from "../common/EmptyState";
 
 export default function CourseStudentsTab({
     studentsLoading,
@@ -12,7 +14,7 @@ export default function CourseStudentsTab({
     handleRemoveStudent
 }) {
     return (
-        <div className="glass-panel overflow-hidden rounded-3xl border border-white/40 dark:border-slate-700/50 shadow-xl">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] shadow-xl overflow-hidden">
             <div className="p-8">
                 <h2 className="card-title text-2xl mb-6 flex items-center gap-2">
                     <Users className="w-6 h-6 text-blue-600" />
@@ -20,16 +22,15 @@ export default function CourseStudentsTab({
                 </h2>
 
                 {studentsLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                    <div className="py-12">
+                        <SkeletonList rows={4} />
                     </div>
                 ) : enrolledStudents.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Users className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                            No students enrolled yet.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={Users}
+                        title="No students yet"
+                        description="No students enrolled yet."
+                    />
                 ) : (
                     <div className="space-y-4">
                         {enrolledStudents.map((enrollment) => {
@@ -48,7 +49,7 @@ export default function CourseStudentsTab({
                             return (
                                 <div
                                     key={enrollment._id}
-                                    className="glass-card hover:-translate-y-1 transition-all"
+                                    className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] hover:-translate-y-1 hover:shadow-md transition-all"
                                 >
                                     <div className="card-body p-4">
                                         <div className="flex items-start justify-between">

@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import useQuizStore from "../stores/Quizstore";
-import PageWrapper from "../components/layout/PageWrapper";
 import StudentGradesTab from "../components/student/StudentGradesTab";
 
 function StudentGradesPage() {
@@ -24,7 +23,6 @@ function StudentGradesPage() {
     }, [token, navigate, listMyGrades]);
 
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -42,7 +40,6 @@ function StudentGradesPage() {
                     viewContentCourse={null}
                 />
             </main>
-        </PageWrapper>
     );
 }
 

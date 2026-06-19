@@ -1,4 +1,5 @@
 import { BookOpen, MessageSquare, ChevronRight } from "lucide-react";
+import { EmptyState } from "../common/EmptyState";
 
 export default function StudentCoursesTab({
     allCourses,
@@ -12,21 +13,17 @@ export default function StudentCoursesTab({
     return (
         <div>
             {allCourses.length === 0 ? (
-                <div className="card bg-blue-50 border border-blue-200 border-dashed">
-                    <div className="card-body text-center py-12">
-                        <BookOpen className="w-16 h-16 text-blue-300 mx-auto mb-4" />
-                        <p className="text-gray-600">
-                            You haven't joined any courses yet. Use
-                            a join code to get started!
-                        </p>
-                    </div>
-                </div>
+                <EmptyState
+                    icon={BookOpen}
+                    title="No courses yet"
+                    description="You haven't joined any courses yet. Use a join code to get started!"
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {allCourses.map((course) => (
                         <div
                             key={course._id}
-                            className="glass-card group cursor-pointer"
+                            className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] group cursor-pointer hover:shadow-md transition-all"
                         >
                             <div className="card-body p-5">
                                 <h3 className="card-title text-lg text-slate-900 dark:text-white group-hover:text-blue-500 transition-colors line-clamp-1">

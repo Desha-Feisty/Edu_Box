@@ -15,7 +15,7 @@ export default function HealthStrip({ items = [], onRefresh }) {
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center">
         {items.map((it) => (
-          <Chip key={it.id} label={it.label} status={it.status} lastSeen={it.lastSeen} />
+          <Chip key={it._id || it.id} label={it.label} status={it.status} lastSeen={it.lastSeen} />
         ))}
       </div>
       <div className="flex items-center">

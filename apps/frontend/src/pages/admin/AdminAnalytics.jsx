@@ -6,6 +6,7 @@ import { Users, BookOpen, FileText, Target, TrendingUp, Award, Clock } from "luc
 
 // Import chart components (wrapper is small, Recharts is lazy loaded internally)
 import { ActivityLineChart, ChartSkeleton } from "../../components/admin/AdminCharts";
+import { SkeletonCard, SkeletonTable } from "../../components/common/Skeleton";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
@@ -99,8 +100,17 @@ function AdminAnalytics() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <span className="loading loading-spinner loading-lg text-blue-500" />
+            <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <SkeletonCard key={i} />
+                    ))}
+                </div>
+                <SkeletonTable rows={5} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </div>
             </div>
         );
     }

@@ -113,6 +113,47 @@ router.get(
     attemptController.getAttemptDetails,
 );
 
+// Student endpoint to contest a response grade (written questions only)
+const contestLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 5,
+    message: { error: "Too many contest requests, please try again later." },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+router.post(
+    "/:attemptId/responses/:responseIndex/contest",
+    authMiddleware,
+    requireRole("student"),
+    contestLimiter,
+    attemptController.contestResponse,
+);
+
+// Teacher endpoint to resolve a contest
+router.patch(
+    "/:attemptId/responses/:responseIndex/contest/resolve",
+    authMiddleware,
+    requireRole("teacher"),
+    attemptController.resolveContest,
+);
+
+// Teacher endpoint to get all contested attempts
+router.get(
+    "/contested/teacher",
+    authMiddleware,
+    requireRole("teacher"),
+    attemptController.getContestedAttempts,
+);
+
+// Teacher endpoint to get ungraded written submissions
+router.get(
+    "/ungraded/teacher",
+    authMiddleware,
+    requireRole("teacher"),
+    attemptController.getUngradedAttempts,
+);
+
 // Teacher endpoint to update response score (override AI grade)
 router.patch(
     "/:attemptId/responses/:responseIndex/score",

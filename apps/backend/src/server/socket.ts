@@ -86,6 +86,18 @@ const saveNotification = async (userId: string, event: string, data: any) => {
             title = "Ticket Response";
             message = `Admin responded to: "${data.subject}"`;
             link = "/settings";
+        } else if (event === "contest-submitted") {
+            type = "contest-submitted";
+            title = "Grade Contest Submitted";
+            message = `${data.studentName} contested a grade in "${data.quizTitle}"`;
+            link = "/teacher";
+        } else if (event === "contest-resolved") {
+            type = "contest-resolved";
+            title = "Contest Resolved";
+            message = data.teacherMessage
+                ? `Your teacher reviewed your contest: "${data.teacherMessage}"`
+                : `Your contest in "${data.quizTitle}" has been reviewed`;
+            link = `/student/quiz/${data.attemptId}/results`;
         } else if (event === "calendar-event") {
             type = "calendar-event";
             title = `New Event: ${data.title}`;

@@ -9,7 +9,8 @@ import {
     Users,
     ArrowRight,
 } from "lucide-react";
-import PageWrapper from "../components/layout/PageWrapper";
+import { EmptyState } from "../components/common/EmptyState";
+
 
 function TeacherCoursesPage() {
     const {
@@ -68,7 +69,6 @@ function TeacherCoursesPage() {
     };
 
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -165,18 +165,17 @@ function TeacherCoursesPage() {
 
                 {/* Courses Grid */}
                 {allCourses.length === 0 ? (
-                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06] p-12 text-center">
-                        <BookOpen className="w-16 h-16 text-brand-300 dark:text-brand-600 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400">
-                            You haven't created any courses yet.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={BookOpen}
+                        title="No courses yet"
+                        description="You haven't created any courses yet."
+                    />
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {allCourses.map((course) => (
                             <div
                                 key={course._id}
-                                className="glass-card group hover:scale-[1.02] transition-all"
+                                className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] group hover:scale-[1.02] hover:shadow-md transition-all"
                             >
                                 <div className="p-5">
                                     <div className="flex items-start justify-between mb-3">
@@ -215,7 +214,6 @@ function TeacherCoursesPage() {
                     </div>
                 )}
             </main>
-        </PageWrapper>
     );
 }
 

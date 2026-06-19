@@ -17,6 +17,7 @@ import {
     ChevronUp,
     AlertTriangle,
 } from "lucide-react";
+import { SkeletonTable } from "../../components/common/Skeleton";
 
 function AdminLogs() {
     const context = useOutletContext() || {};
@@ -405,8 +406,8 @@ function AdminLogs() {
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                             {logsLoading ? (
                                 <tr>
-                                    <td colSpan="5" className="px-4 py-8 text-center">
-                                        <span className="loading loading-spinner loading-md text-blue-500"></span>
+                                    <td colSpan="5" className="px-4 py-8">
+                                        <SkeletonTable rows={8} />
                                     </td>
                                 </tr>
                             ) : logs.length === 0 ? (

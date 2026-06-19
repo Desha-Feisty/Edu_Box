@@ -891,7 +891,9 @@ const generateQuestionsWithAI = async (req: AuthRequest, res: Response) => {
 const generateQuestionsFromFile = async (req: AuthRequest, res: Response) => {
     try {
         const { id: quizId } = req.params;
-        const { questionType = "mcq_single", count = 5, points = 1 } = req.body;
+        const { questionType = "mcq_single" } = req.body;
+        const count = Number(req.body.count) || 5;
+        const points = Number(req.body.points) || 1;
 
         // Require file first so cleanup is always in scope
         if (!req.file) {

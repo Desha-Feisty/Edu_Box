@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import useTeacherStore from "../../stores/Teacherstore";
 import { ConfirmDialog } from "../common/Modal";
 import toast from "react-hot-toast";
+import { formatDateTime } from "../../lib/dates";
 import {
     Calendar,
     Plus,
@@ -12,6 +13,7 @@ import {
     Clock,
     BookOpen,
 } from "lucide-react";
+import { EmptyState } from "../common/EmptyState";
 
 const TABS = [
     { id: "quizzes", label: "Quizzes" },
@@ -33,6 +35,7 @@ export default function CourseEventsTab({ courseId, _course }) {
     } = useTeacherStore();
 
     const [_isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [showForm, setShowForm] = useState(false);
     const [editingEvent, setEditingEvent] = useState(null);
     const [deletingEventId, setDeletingEventId] = useState(null);
@@ -60,6 +63,7 @@ export default function CourseEventsTab({ courseId, _course }) {
         });
         setEditingEvent(null);
         setShowForm(false);
+        setError(null);
     };
 
     const handleSubmit = async (e) => {
@@ -69,6 +73,7 @@ export default function CourseEventsTab({ courseId, _course }) {
             return;
         }
 
+        setError(null);
         setIsLoading(true);
         try {
             if (editingEvent) {
@@ -81,7 +86,9 @@ export default function CourseEventsTab({ courseId, _course }) {
             resetForm();
             listCourseCalendarEvents(courseId);
         } catch (err) {
-            toast.error(err.response?.data?.errMsg || "Failed to save event");
+            const errMsg = err.response?.data?.errMsg || "Failed to save event";
+            toast.error(errMsg);
+            setError(errMsg);
         } finally {
             setIsLoading(false);
         }
@@ -107,24 +114,20 @@ export default function CourseEventsTab({ courseId, _course }) {
         if (!deletingEventId) return;
         const eventId = deletingEventId;
         setDeletingEventId(null);
+        setError(null);
         try {
             await deleteCalendarEvent(courseId, eventId);
             toast.success("Event deleted successfully");
         } catch {
-            toast.error("Failed to delete event");
+            const errMsg = "Failed to delete event";
+            toast.error(errMsg);
+            setError(errMsg);
         }
     };
 
     const handleDeleteCancel = () => setDeletingEventId(null);
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleString("en-US", {
-            day: "numeric",
-            month: "short",
-            hour: "numeric",
-            minute: "2-digit",
-        });
-    };
+    const formatDate = formatDateTime;
 
     const eventTypeColors = {
         deadline: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
@@ -148,6 +151,16 @@ export default function CourseEventsTab({ courseId, _course }) {
                     Add Event
                 </button>
             </div>
+
+            {/* Error Banner */}
+            {error && (
+                <div className="alert alert-error mb-4 shadow-lg rounded-xl">
+                    <span>{error}</span>
+                    <button onClick={() => setError(null)} className="btn btn-ghost btn-xs">
+                        Dismiss
+                    </button>
+                </div>
+            )}
 
             {/* Event Form Modal */}
             {showForm && (
@@ -247,19 +260,13 @@ export default function CourseEventsTab({ courseId, _course }) {
 
             {/* Events List */}
             {!calendarEvents || calendarEvents.length === 0 ? (
-                <div className="text-center py-12 bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600">
-                    <Calendar className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 dark:text-slate-400 mb-4">
-                        No events scheduled yet.
-                    </p>
-                    <button
-                        onClick={() => setShowForm(true)}
-                        className="btn-brand"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add Your First Event
-                    </button>
-                </div>
+                <EmptyState
+                    icon={Calendar}
+                    title="No events yet"
+                    description="No events scheduled yet."
+                    actionLabel="Add Your First Event"
+                    onAction={() => setShowForm(true)}
+                />
             ) : (
                 <div className="space-y-4">
                     {calendarEvents.map((event) => (

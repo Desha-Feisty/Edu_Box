@@ -2,20 +2,19 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProgressCard from '../components/dashboard/ProgressCard';
 import CourseCalendar from '../components/dashboard/CourseCalendar';
-import SubmissionList from '../components/dashboard/SubmissionList';
-import GradeModal from '../components/dashboard/GradeModal';
 import useTeacherStore from '../stores/Teacherstore';
 import useAuthStore from '../stores/Authstore';
 import useQuizStore from '../stores/Quizstore';
 import telemetry from '../lib/telemetry';
 import api from '../lib/api';
 import EVENTS from '@edubox/shared/telemetry';
-import { BookOpen, ClipboardList, Users, Award, Zap, PlusCircle } from 'lucide-react';
+import { BookOpen, ClipboardList, Users, Award, Zap, PlusCircle, Calendar, MessageSquare } from 'lucide-react';
 
 export default function TeacherDashboard() {
   const navigate = useNavigate();
-  const [selectedAttempt, setSelectedAttempt] = useState(null);
   const [customCalendarEvents, setCustomCalendarEvents] = useState([]);
+  const [contestedAttempts, setContestedAttempts] = useState([]);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // Stores
   const user = useAuthStore((s) => s.user);
@@ -32,7 +31,30 @@ export default function TeacherDashboard() {
     fetchAvailableQuizzes();
   }, [listMyCourses, listRecentSubmissions, fetchAvailableQuizzes]);
 
-  // Fetch calendar events for all courses
+  // Fetch contested attempts
+  const fetchContested = async () => {
+    try {
+      const res = await api.get('/attempts/contested/teacher');
+      setContestedAttempts(res.data.attempts || []);
+    } catch (_err) {
+      // silent fail
+    }
+  };
+
+  useEffect(() => {
+    fetchContested();
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/chat/unread/count');
+        setUnreadMessages(res.data.unreadCount || 0);
+      } catch (_err) {
+        // silent fail
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, []);
   useEffect(() => {
     if (allCourses.length === 0) return;
     const fetchEvents = async () => {
@@ -52,7 +74,6 @@ export default function TeacherDashboard() {
 
   // Compute real stats
   const coursesCount = allCourses.length;
-  const pendingGrades = recentSubmissions.filter((s) => s.score == null || s.score === undefined).length;
   const totalStudents = allCourses.reduce((sum, c) => sum + (c.enrollmentCount || 0), 0);
 
   // Average score from graded submissions
@@ -61,16 +82,78 @@ export default function TeacherDashboard() {
     ? Math.round(gradedSubmissions.reduce((sum, s) => sum + s.score, 0) / gradedSubmissions.length)
     : 0;
 
-  // Build next actions from real pending submissions
-  const nextActions = pendingGrades > 0
-    ? [{
-        id: 'grade-pending',
-        title: `${pendingGrades} submission${pendingGrades > 1 ? 's' : ''} pending grading`,
+  const contestedTotal = contestedAttempts.reduce((sum, a) => sum + (a.responses?.length || 0), 0);
+
+  // Build contextual next actions based on real teacher data
+  const nextActions = useMemo(() => {
+    const actions = [];
+
+    // 1 — Courses with enrolled students but NO published quizzes
+    const coursesWithoutQuizzes = allCourses.filter(
+      (c) => (c.publishedQuizCount || 0) === 0 && (c.enrollmentCount || 0) > 0
+    );
+    if (coursesWithoutQuizzes.length > 0) {
+      actions.push({
+        id: 'publish-first-quiz',
+        title: `Publish first quiz`,
+        description: `${coursesWithoutQuizzes.length} course${coursesWithoutQuizzes.length > 1 ? 's have' : ' has'} students but no quizzes yet`,
         due: 'Now',
-        type: 'grade',
-        primaryLabel: `Grade ${pendingGrades}`,
-      }]
-    : [];
+        type: 'publish',
+        icon: 'Zap',
+        primaryLabel: 'Create Quiz',
+        navigateTo: '/teacher/quiz/create',
+      });
+    }
+
+    // 2 — Contested responses (grade review requests from students)
+    if (contestedTotal > 0) {
+      actions.push({
+        id: 'review-contested',
+        title: `${contestedTotal} contested grade${contestedTotal > 1 ? 's' : ''}`,
+        description: `${contestedAttempts.length} student${contestedAttempts.length > 1 ? 's' : ''} requested a grade review`,
+        due: 'Now',
+        type: 'contest',
+        icon: 'ClipboardList',
+        primaryLabel: `Review ${contestedTotal}`,
+        navigateTo: '/teacher/review-requests',
+      });
+    }
+
+    // 2c — Unread messages from students
+    if (unreadMessages > 0) {
+      actions.push({
+        id: 'unread-messages',
+        title: `${unreadMessages} unread message${unreadMessages > 1 ? 's' : ''}`,
+        description: 'Students have sent you messages',
+        due: 'Now',
+        type: 'chat',
+        icon: 'MessageSquare',
+        primaryLabel: 'View Chats',
+        navigateTo: '/teacher/chats',
+      });
+    }
+
+    // 3 — Calendar event happening today
+    const todayStr = new Date().toDateString();
+    const todayEvents = customCalendarEvents.filter((e) => {
+      const d = e.date ? new Date(e.date).toDateString() : null;
+      return d === todayStr;
+    });
+    if (todayEvents.length > 0) {
+      actions.push({
+        id: 'today-event',
+        title: `Event today: ${todayEvents[0].title}`,
+        description: `${todayEvents.length === 1 ? '' : `${todayEvents.length} events — `}Check your schedule`,
+        due: 'Today',
+        type: 'event',
+        icon: 'Calendar',
+        primaryLabel: 'View',
+        navigateTo: `/teacher/course/${todayEvents[0].courseId || ''}?tab=events`,
+      });
+    }
+
+    return actions;
+  }, [allCourses, customCalendarEvents, contestedAttempts, contestedTotal, unreadMessages]);
 
   // Build calendar events from quizzes + custom events
   const calendarEvents = useMemo(() => [
@@ -80,6 +163,9 @@ export default function TeacherDashboard() {
 
   const handleStart = (action) => {
     telemetry.track(EVENTS.DASHBOARD_CTA_CLICK, { role: 'teacher', ctaId: action.id, page: 'teacher_dashboard' });
+    if (action.navigateTo) {
+      navigate(action.navigateTo);
+    }
   };
 
   return (
@@ -162,14 +248,16 @@ export default function TeacherDashboard() {
           color="brand"
           type="stat"
         />
-        <ProgressCard
-          title="Pending Grades"
-          value={pendingGrades}
-          subtitle="Awaiting review"
-          icon={ClipboardList}
-          color="green"
-          type="stat"
-        />
+        <button onClick={() => navigate('/teacher/review-requests')} className="text-left w-full">
+          <ProgressCard
+            title="Review Requests"
+            value={contestedTotal}
+            subtitle="Grade reviews needed"
+            icon={MessageSquare}
+            color="amber"
+            type="stat"
+          />
+        </button>
       </div>
 
       {/* Main Content Grid */}
@@ -180,26 +268,52 @@ export default function TeacherDashboard() {
             <h3 className="text-lg font-semibold mb-3">Priority Actions</h3>
             {nextActions.length > 0 ? (
               <div className="space-y-3">
-                {nextActions.map((a) => (
-                  <div key={a.id} className="bg-white dark:bg-base-200 rounded-xl p-4 flex items-center justify-between border border-slate-200/60 dark:border-white/[0.04]">
-                    <div>
-                      <div className="text-sm font-medium">{a.title}</div>
-                      <div className="text-xs text-slate-500">Due {a.due}</div>
+                {nextActions.map((a) => {
+                  const ActionIcon = a.type === 'publish' ? PlusCircle
+                    : a.type === 'contest' ? ClipboardList
+                    : a.type === 'review' ? ClipboardList
+                    : a.type === 'chat' ? MessageSquare
+                    : Calendar;
+                  const gradient = a.type === 'publish'
+                    ? 'from-brand-500 to-brand-600'
+                    : a.type === 'contest'
+                    ? 'from-amber-500 to-amber-600'
+                    : a.type === 'review'
+                    ? 'from-amber-500 to-amber-600'
+                    : a.type === 'chat'
+                    ? 'from-violet-500 to-violet-600'
+                    : 'from-blue-500 to-blue-600';
+                  return (
+                    <div key={a.id} className="bg-white dark:bg-base-200 rounded-xl p-4 flex items-center justify-between border border-slate-200/60 dark:border-white/[0.04] hover:border-brand-300 dark:hover:border-brand-600 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center shadow-sm shrink-0`}>
+                          <ActionIcon className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-slate-900 dark:text-white">{a.title}</div>
+                          {a.description && (
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{a.description}</div>
+                          )}
+                          <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Due {a.due}</div>
+                        </div>
+                      </div>
+                      <div>
+                        <button className="btn btn-sm btn-brand rounded-xl" onClick={() => handleStart(a)}>
+                          {a.primaryLabel || 'Start'}
+                        </button>
+                      </div>
                     </div>
-                    <div>
-                      <button className="btn btn-brand" onClick={() => handleStart(a)}>{a.primaryLabel || 'Start'}</button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
-              <div className="text-sm text-slate-500">No pending actions</div>
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <Zap className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
+                <p className="text-sm text-slate-500 dark:text-slate-400">All caught up!</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">No pending actions right now</p>
+              </div>
             )}
 
-            <div className="mt-6">
-              <h4 className="text-sm font-medium mb-2">Recent Submissions</h4>
-              <SubmissionList submissions={recentSubmissions} onGrade={(s) => setSelectedAttempt(s.id)} />
-            </div>
           </div>
 
           {/* Course Calendar */}
@@ -261,15 +375,10 @@ export default function TeacherDashboard() {
               )}
             </div>
           </div>
+
         </div>
       </div>
 
-      {/* Grade Modal */}
-      {selectedAttempt ? (
-        <GradeModal attemptId={selectedAttempt} onClose={() => setSelectedAttempt(null)} onUpdated={(_info) => {
-          listRecentSubmissions();
-        }} />
-      ) : null}
     </div>
   );
 }

@@ -85,7 +85,7 @@ describe("Attempt Routes — Mounting & Auto-Save (S1-2, S1-3)", () => {
             quizId = new Types.ObjectId();
             questionId = new Types.ObjectId();
 
-            const course = await Quiz.create(createTestQuiz({ _id: quizId }));
+            const quiz = await Quiz.create(createTestQuiz({ _id: quizId }));
             
             await mongoose.model("Question").create(
                 createTestQuestion({ _id: questionId, quiz: quizId })

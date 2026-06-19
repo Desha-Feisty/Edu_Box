@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import axios from "axios";
 import toast from "react-hot-toast";
-import PageWrapper from "../components/layout/PageWrapper";
 import {
     User,
     Lock,
@@ -129,7 +128,6 @@ function SettingsPage() {
     ];
 
     return (
-        <PageWrapper>
             <main className="max-w-4xl mx-auto px-6 py-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2">
@@ -285,7 +283,7 @@ function SettingsPage() {
                                         type="submit"
                                 className="btn-brand w-full"
                             >
-                                <Save className="w-5 h-4" />
+                                <Save className="w-5 h-5" />
                                 Update Password
                                     </button>
                                 </form>
@@ -424,7 +422,6 @@ function SettingsPage() {
                     </div>
                 </div>
             </main>
-        </PageWrapper>
     );
 }
 

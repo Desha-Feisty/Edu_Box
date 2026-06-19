@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
-import PageWrapper from "../components/layout/PageWrapper";
 import { Calendar, Clock, BookOpen, Zap, Calendar as CalendarIcon } from "lucide-react";
 
 function StudentCalendarPage() {
@@ -122,7 +121,6 @@ function StudentCalendarPage() {
     };
 
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -156,7 +154,8 @@ function StudentCalendarPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-7 gap-2">
+                        <div className="overflow-x-auto">
+                            <div className="grid grid-cols-7 gap-2 min-w-[650px]">
                             {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                                 <div key={day} className="text-center text-sm font-bold text-slate-500 dark:text-slate-400 py-2">
                                     {day}
@@ -204,6 +203,7 @@ function StudentCalendarPage() {
                                     </div>
                                 );
                             })}
+                            </div>
                         </div>
                     </div>
 
@@ -246,7 +246,6 @@ function StudentCalendarPage() {
                     </div>
                 </div>
             </main>
-        </PageWrapper>
     );
 }
 

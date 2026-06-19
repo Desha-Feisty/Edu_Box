@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
     LogOut,
     Bell,
@@ -18,7 +18,7 @@ import useThemeStore from "../../stores/ThemeStore";
 import GlobalSearch from "../search/GlobalSearch";
 import { useDebounce } from "../../hooks/useDebounce";
 
-export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotifications }) {
+export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotifications, pinnedSidebarActive }) {
     const { user, logout } = useAuthStore();
     const unreadCount = useNotificationStore((state) => state.unreadCount);
     const fetchNotifications = useNotificationStore((state) => state.fetchNotifications);
@@ -72,10 +72,10 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
             >
                 {/* ── Left: Menu + Logo ──────────────────────────────── */}
                 <div className="flex items-center gap-3 flex-shrink-0">
-                    {/* Menu toggle */}
+                    {/* Menu toggle — hidden when sidebar is pinned */}
                     <button
                         onClick={onToggleSidebar}
-                        className={iconBtnClass}
+                        className={`${iconBtnClass} ${pinnedSidebarActive ? "hidden xl:hidden" : ""}`}
                         aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
                     >
                         {isSidebarOpen ? (
@@ -202,6 +202,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
             </motion.nav>
 
             {/* ── Mobile search overlay ──────────────────────────────── */}
+            <AnimatePresence>
             {mobileSearchOpen && (
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -233,6 +234,7 @@ export default function Navbar({ onToggleSidebar, isSidebarOpen, onOpenNotificat
                     </div>
                 </motion.div>
             )}
+            </AnimatePresence>
 
             {/* ── Global Search Modal ────────────────────────────────── */}
             <GlobalSearch

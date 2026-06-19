@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
 import useAuthStore from "../stores/Authstore";
@@ -14,7 +14,7 @@ import {
     TrendingUp,
     Calendar,
 } from "lucide-react";
-import PageWrapper from "../components/layout/PageWrapper";
+
 import AnalyticsDashboard from "../components/AnalyticsDashboard";
 import Leaderboard from "../components/Leaderboard";
 
@@ -25,6 +25,7 @@ import CourseGradesTab from "../components/teacher/CourseGradesTab";
 import CourseCommunityTab from "../components/teacher/CourseCommunityTab";
 import CourseEventsTab from "../components/teacher/CourseEventsTab";
 import TeacherChatTab from "../components/teacher/TeacherChatTab";
+import { SkeletonCard } from "../components/common/Skeleton";
 
 function TeacherCoursePage() {
     const { id } = useParams();
@@ -59,9 +60,10 @@ function TeacherCoursePage() {
     const [chatCourseId, setChatCourseId] = useState(null);
     const [chatPeerId, setChatPeerId] = useState(null);
     const [chatPeerName, setChatPeerName] = useState("");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = searchParams.get("tab") || "quizzes";
     const [selectedQuiz, setSelectedQuiz] = useState(null);
     const [selectedQuizTitle, setSelectedQuizTitle] = useState("");
-    const [activeTab, setActiveTab] = useState("quizzes");
     const [courseNotes, setCourseNotes] = useState([]);
     const [notesLoading, setNotesLoading] = useState(false);
     const [isUpdatingCourse, setIsUpdatingCourse] = useState(false);
@@ -87,7 +89,7 @@ function TeacherCoursePage() {
         }
     }, [selectedQuiz, listQuizGrades]);
 
-    const loadCourseNotes = async () => {
+    const loadCourseNotes = useCallback(async () => {
         setNotesLoading(true);
         try {
             const notes = await useTeacherStore.getState().listCourseNotes(id);
@@ -97,9 +99,9 @@ function TeacherCoursePage() {
         } finally {
             setNotesLoading(false);
         }
-    };
+    }, [id]);
 
-    const loadEnrolledStudents = async () => {
+    const loadEnrolledStudents = useCallback(async () => {
         setStudentsLoading(true);
         try {
             const roster = await getRoster(id);
@@ -142,7 +144,7 @@ function TeacherCoursePage() {
         } finally {
             setStudentsLoading(false);
         }
-    };
+    }, [id, token, getRoster]);
 
      
     useEffect(() => {
@@ -257,12 +259,12 @@ function TeacherCoursePage() {
     if (!course)
         return (
             <div className="min-h-screen flex items-center justify-center dark:bg-base-300">
-                <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                <SkeletonCard />
             </div>
         );
 
     return (
-        <PageWrapper>
+        <>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <CourseHeader
                     course={course}
@@ -335,7 +337,7 @@ function TeacherCoursePage() {
                     ].map(({ id: tabId, label, icon: TabIcon }) => (
                         <button
                             key={tabId}
-                            onClick={() => setActiveTab(tabId)}
+                            onClick={() => setSearchParams({ tab: tabId })}
                             className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
                                 activeTab === tabId
                                     ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-md"
@@ -433,7 +435,7 @@ function TeacherCoursePage() {
                     }}
                 />
             )}
-        </PageWrapper>
+        </>
     );
 }
 

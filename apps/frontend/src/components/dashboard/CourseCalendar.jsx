@@ -146,7 +146,7 @@ function CourseCalendar({ events = [], onEventClick, loading = false }) {
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-base-200 rounded-3xl shadow-md"
+                className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] shadow-md"
             >
                 <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50">
                     <div className="flex items-center gap-3">
@@ -172,7 +172,7 @@ function CourseCalendar({ events = [], onEventClick, loading = false }) {
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-base-200 rounded-3xl shadow-md overflow-hidden"
+            className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] shadow-md overflow-hidden"
         >
             {/* Calendar Header */}
             <div className="px-6 py-5 border-b border-slate-200 dark:border-slate-700/50">

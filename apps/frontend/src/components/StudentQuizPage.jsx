@@ -165,6 +165,7 @@ function StudentQuizPage() {
                 toast.success("Quiz submitted successfully!");
                 // If gradingMode is "onSubmit", show results immediately
                 // If gradingMode is "onClose", show submission success page
+                submissionLock.current = true;
                 if (result.gradingMode === "onSubmit") {
                     navigate(`/student/quiz/${attemptId}/results`);
                 } else {
@@ -235,13 +236,7 @@ function StudentQuizPage() {
         return () => clearTimeout(timer);
     }, [gracePeriod, handleAutoSubmit]);
 
-    // Block tab/refresh navigation while quiz is in progress
-    useEffect(() => {
-        if (currentAttempt?.status !== "inProgress" || isSubmitted || submissionLock.current) return;
-        const handler = (e) => { e.preventDefault(); e.returnValue = ""; };
-        window.addEventListener("beforeunload", handler);
-        return () => window.removeEventListener("beforeunload", handler);
-    }, [currentAttempt?.status, isSubmitted]);
+
 
     const handleAnswerChange = useCallback(
         (questionId, choiceId, textAnswer) => {

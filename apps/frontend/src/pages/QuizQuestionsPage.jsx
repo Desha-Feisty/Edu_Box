@@ -16,7 +16,7 @@ import {
     Link,
     Copy,
 } from "lucide-react";
-import PageWrapper from "../components/layout/PageWrapper";
+
 import { ConfirmDialog } from "../components/common/Modal";
 
 function QuizQuestionsPage() {
@@ -306,7 +306,6 @@ function QuizQuestionsPage() {
         );
 
     return (
-        <PageWrapper>
             <main className="max-w-5xl mx-auto px-6 py-8 animate-in fade-in duration-500 relative z-10">
                 {/* Error Alert */}
                 {errMsg && (
@@ -392,7 +391,7 @@ function QuizQuestionsPage() {
                                 </div>
                                 <button
                                     onClick={() => {
-                                        const url = `${window.location.origin}/student/quizzes`;
+                                        const url = `${window.location.origin}/student/quizzes/${quizId}`;
                                         navigator.clipboard.writeText(url);
                                         toast.success("Quiz link copied to clipboard");
                                     }}
@@ -882,11 +881,11 @@ function QuizQuestionsPage() {
                                 className="glass-card overflow-hidden hover:-translate-y-1 transition-all group"
                             >
                                 <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-400 dark:bg-blue-500 group-hover:bg-blue-500 dark:group-hover:bg-blue-400 transition-colors"></div>
-                                <div className="p-8 ml-1.5 border-b border-slate-100 dark:border-slate-800/50">
+                                <div className="p-5 ml-1.5 border-b border-slate-100 dark:border-slate-800/50">
                                     {/* Question Header */}
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-xl shadow-inner border border-blue-200 dark:border-blue-800">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 flex items-center justify-center font-bold text-base shadow-inner border border-blue-200 dark:border-blue-800">
                                                 {idx + 1}
                                             </div>
                                             <div>
@@ -917,42 +916,42 @@ function QuizQuestionsPage() {
                                     </div>
 
                                     {/* Question Prompt */}
-                                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white mb-6 leading-relaxed">
+                                    <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white mb-3 leading-relaxed">
                                         {q.prompt}
                                     </h3>
 
                                     {/* Answer Choices or Sample Answer */}
                                     {q.questionType === "written" ? (
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             {q.sampleAnswer && (
-                                                <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Sample Answer</p>
-                                                    <p className="text-slate-700 dark:text-slate-300 italic">"{q.sampleAnswer}"</p>
+                                                <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Sample Answer</p>
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300 italic">"{q.sampleAnswer}"</p>
                                                 </div>
                                             )}
                                             {q.rubric && (
-                                                <div className="bg-slate-50 dark:bg-slate-800/30 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
-                                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Grading Rubric</p>
-                                                    <p className="text-slate-700 dark:text-slate-300">{q.rubric}</p>
+                                                <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Grading Rubric</p>
+                                                    <p className="text-sm text-slate-700 dark:text-slate-300">{q.rubric}</p>
                                                 </div>
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {q.choices?.map((c, i) => (
                                                 <div
                                                     key={i}
-                                                    className={`p-4 sm:p-5 rounded-2xl border-2 transition-all flex items-center gap-4 ${
+                                                    className={`p-3 rounded-2xl border-2 transition-all flex items-center gap-3 ${
                                                         c.isCorrect
                                                             ? "bg-emerald-50/80 dark:bg-emerald-900/20 border-emerald-400 dark:border-emerald-500/50 shadow-sm shadow-emerald-500/10"
                                                             : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700"
                                                     }`}
                                                 >
-                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 border-2 ${c.isCorrect ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-400'}`}>
-                                                        {c.isCorrect ? <CheckCircle className="w-5 h-5" /> : <span className="text-sm font-semibold">{String.fromCharCode(65 + i)}</span>}
+                                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 border-2 ${c.isCorrect ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-400'}`}>
+                                                        {c.isCorrect ? <CheckCircle className="w-4 h-4" /> : <span className="text-xs font-semibold">{String.fromCharCode(65 + i)}</span>}
                                                     </div>
                                                     <div className="flex-1">
-                                                        <p className={`text-lg ${c.isCorrect ? "font-bold text-emerald-900 dark:text-emerald-100" : "font-medium text-slate-700 dark:text-slate-300"}`}>
+                                                        <p className={`text-sm ${c.isCorrect ? "font-bold text-emerald-900 dark:text-emerald-100" : "font-medium text-slate-700 dark:text-slate-300"}`}>
                                                             {c.text}
                                                         </p>
                                                     </div>
@@ -977,7 +976,6 @@ function QuizQuestionsPage() {
                 variant="danger"
             />
             </main>
-        </PageWrapper>
     );
 }
 

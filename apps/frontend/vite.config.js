@@ -27,11 +27,6 @@ export default defineConfig({
             include: ["src/**/*.{js,jsx}"],
             exclude: ["node_modules/", "src/test/"],
         },
-        resolve: {
-            alias: {
-                "@edubox/shared": path.resolve(__dirname, "../../packages/shared/src"),
-            },
-        },
     },
     server: {
         host: "localhost",

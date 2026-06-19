@@ -59,6 +59,7 @@ apps/backend/coverage/
 *.tmp
 .DS_Store
 Thumbs.db
+.docs
 
 # ============================================
 # Uploads
@@ -80,3 +81,4 @@ AGENTS.md
 # Vendor / Third-party
 # ============================================
 ECC/
+docs.docx

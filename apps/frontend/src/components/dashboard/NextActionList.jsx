@@ -1,7 +1,7 @@
 import React from 'react';
 // PropTypes omitted to avoid runtime dependency
 import telemetry from '../../lib/telemetry';
-import EVENTS from '../../../../../packages/shared/src/telemetry';
+import EVENTS from '@edubox/shared/telemetry';
 
 export default function NextActionList({ actions = [], onStart }) {
   const handleStart = (action) => {
@@ -16,7 +16,7 @@ export default function NextActionList({ actions = [], onStart }) {
   return (
     <div className="space-y-3">
       {actions.map((a) => (
-        <div key={a.id} className="bg-white dark:bg-base-200 rounded-xl p-4 flex items-center justify-between border border-slate-200/60 dark:border-white/[0.04]">
+        <div key={a._id || a.id} className="bg-white dark:bg-base-200 rounded-xl p-4 flex items-center justify-between border border-slate-200/60 dark:border-white/[0.04]">
           <div>
             <div className="text-sm font-medium">{a.title}</div>
             <div className="text-xs text-slate-500">Due {a.due}</div>

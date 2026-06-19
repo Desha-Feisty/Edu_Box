@@ -1,18 +1,8 @@
 import { useState } from "react";
 import { BookOpen, CheckCircle, Clock, Eye, Trash2, Plus } from "lucide-react";
 import { ConfirmDialog } from "../common/Modal";
-
-const formatDate = (dateString) => {
-    if (!dateString) return "";
-    return new Date(dateString).toLocaleString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-    });
-};
+import { formatDateLong as formatDate } from "../../lib/dates";
+import { EmptyState } from "../common/EmptyState";
 
 export default function CourseQuizzesTab({
     quizzes,
@@ -73,19 +63,13 @@ export default function CourseQuizzesTab({
 
             {/* Quiz List */}
             {quizzes.length === 0 ? (
-                <div className="bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-300 dark:border-slate-600 p-12 text-center">
-                    <BookOpen className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                    <p className="text-slate-500 dark:text-slate-400 mb-4">
-                        No quizzes created yet.
-                    </p>
-                    <button
-                        onClick={() => navigate(`/teacher/quiz/create?courseId=${courseId}`)}
-                        className="btn-brand"
-                    >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Your First Quiz
-                    </button>
-                </div>
+                <EmptyState
+                    icon={BookOpen}
+                    title="No quizzes yet"
+                    description="No quizzes created yet."
+                    actionLabel="Create Your First Quiz"
+                    onAction={() => navigate(`/teacher/quiz/create?courseId=${courseId}`)}
+                />
             ) : (
                 sortedQuizzes.map((quiz) => (
                     <div

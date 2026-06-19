@@ -20,7 +20,6 @@ import {
 import useAuthStore from "../stores/Authstore";
 import useQuizStore from "../stores/Quizstore";
 import useTeacherStore from "../stores/Teacherstore";
-import PageWrapper from "../components/layout/PageWrapper";
 import {
     TrendingUp,
     TrendingDown,
@@ -205,18 +204,15 @@ function AnalyticsPage() {
 
     if (isLoading) {
         return (
-            <PageWrapper>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
-                </div>
-            </PageWrapper>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
+            </div>
         );
     }
 
     const data = analyticsData();
 
     return (
-        <PageWrapper>
             <div
                 className="max-w-7xl mx-auto px-6 py-8 w-full animate-in fade-in duration-500"
             >
@@ -701,7 +697,6 @@ function AnalyticsPage() {
             </div>
             )}
             </div>
-        </PageWrapper>
     );
 }
 

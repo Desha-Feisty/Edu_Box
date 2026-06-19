@@ -138,6 +138,8 @@ export interface ICreateQuestionData {
 // ============================================
 // Attempt Types
 // ============================================
+export type ContestStatus = "pending" | "resolved" | "none";
+
 export interface IResponse {
     question: string;
     selectedChoiceIds: string[];
@@ -145,6 +147,9 @@ export interface IResponse {
     aiScore?: number;
     aiFeedback?: string;
     pointsAwarded?: number;
+    contestReason?: string;
+    contestStatus?: ContestStatus;
+    contestedAt?: string;
 }
 
 export interface IAttempt {

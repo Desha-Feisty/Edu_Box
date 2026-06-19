@@ -153,6 +153,7 @@ const listMyCourses = async (req: AuthRequest, res: Response) => {
                     _id: course._id, 
                     title: course.title, 
                     description: course.description,
+                    teacher: course.teacher,
                     publishedQuizCount: publishedCount 
                 };
             })

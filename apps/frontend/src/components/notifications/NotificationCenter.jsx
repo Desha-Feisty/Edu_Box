@@ -1,5 +1,5 @@
 import { useEffect, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import useNotificationStore from "../../stores/NotificationStore";
 import useChatStore from "../../stores/ChatStore";
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { useState } from "react";
+import toast from "react-hot-toast";
 
 const iconColors = {
     quiz: { bg: "bg-blue-100 dark:bg-blue-500/15", color: "text-blue-500" },
@@ -61,8 +62,8 @@ function NotificationCenter({ isOpen, onClose }) {
     const handleMarkAllRead = async () => {
         try {
             await markAllAsRead();
-        } catch {
-            console.error("Failed to mark all as read:");
+        } catch (error) {
+            console.error("Failed to mark all as read:", error);
         }
     };
 
@@ -117,151 +118,160 @@ function NotificationCenter({ isOpen, onClose }) {
 
     const confirmDelete = async () => {
         if (!deletingId) return;
-        await deleteNotification(deletingId);
+        try {
+            await deleteNotification(deletingId);
+        } catch {
+            toast.error("Failed to delete notification");
+        }
         setDeletingId(null);
     };
 
     return (
         <>
-            {isOpen && (
-                <>
-                    {/* Glassmorphism Backdrop */}
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 bg-black/35 dark:bg-black/60 backdrop-blur-sm z-[200]"
-                    />
+            <AnimatePresence>
+                {isOpen && (
+                    <>
+                        {/* Glassmorphism Backdrop */}
+                        <motion.div
+                            key="notif-backdrop"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.25 }}
+                            onClick={onClose}
+                            className="fixed inset-0 bg-black/35 dark:bg-black/60 backdrop-blur-sm z-[200]"
+                        />
 
-                    {/* Glassmorphism Side Panel */}
-                    <motion.div
-                        initial={{ opacity: 0, x: "100%" }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: "100%" }}
-                        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                        className="fixed right-0 top-0 h-full w-full max-w-md bg-white/65 dark:bg-slate-900/85 backdrop-blur-2xl border-l border-white/40 dark:border-white/[0.06] shadow-2xl flex flex-col z-[250]"
-                    >
-                        {/* Glass Header */}
-                        <div className="flex items-center justify-between px-6 py-6 border-b border-black/[0.06] dark:border-white/[0.06]">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-500/35">
-                                    <Bell className="w-6 h-6 text-white" />
+                        {/* Glassmorphism Side Panel */}
+                        <motion.div
+                            key="notif-panel"
+                            initial={{ opacity: 0, x: "100%" }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="fixed right-0 top-0 h-full w-full max-w-md bg-white/65 dark:bg-slate-900/85 backdrop-blur-2xl border-l border-white/40 dark:border-white/[0.06] shadow-2xl flex flex-col z-[250]"
+                        >
+                            {/* Glass Header */}
+                            <div className="flex items-center justify-between px-6 py-6 border-b border-black/[0.06] dark:border-white/[0.06]">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center shadow-lg shadow-violet-500/35">
+                                        <Bell className="w-6 h-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
+                                            Notifications
+                                        </h2>
+                                        {unreadCount > 0 && (
+                                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                {unreadCount} unread
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-                                        Notifications
-                                    </h2>
-                                    {unreadCount > 0 && (
-                                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                                            {unreadCount} unread
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                            <button
-                                onClick={onClose}
-                                className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/[0.1] cursor-pointer hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors"
-                            >
-                                <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
-                            </button>
-                        </div>
-
-                        {/* Mark all read button */}
-                        {unreadCount > 0 && (
-                            <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
                                 <button
-                                    onClick={handleMarkAllRead}
-                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 dark:bg-violet-500/15 border border-violet-500/20 dark:border-violet-500/25 cursor-pointer hover:bg-violet-500/20 dark:hover:bg-violet-500/25 transition-colors"
+                                    onClick={onClose}
+                                    className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/60 border border-white/50 dark:border-white/[0.1] cursor-pointer hover:bg-white/80 dark:hover:bg-slate-800/80 transition-colors"
                                 >
-                                    <Check className="w-4.5 h-4.5" />
-                                    Mark all as read
+                                    <X className="w-5 h-5 text-slate-500 dark:text-slate-400" />
                                 </button>
                             </div>
-                        )}
 
-                        {/* Notifications List */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {notifications.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-16 px-6 gap-4">
-                                    <div className="w-[72px] h-[72px] rounded-full bg-violet-500/10 dark:bg-violet-500/15 flex items-center justify-center">
-                                        <Bell className="w-9 h-9 text-violet-500" />
-                                    </div>
-                                    <p className="text-sm text-slate-500 dark:text-slate-400">Your inbox is empty!</p>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500">You&apos;re all caught up</p>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col gap-2">
-                                    {notifications.map((notification) => {
-                                        const colors = getColors(notification.type);
-                                        const isUnread = !notification.read;
-                                        return (
-                                            <div
-                                                key={notification._id}
-                                                onClick={() => handleNotificationClick(notification)}
-                                                className={`flex gap-3.5 p-4 rounded-2xl cursor-pointer transition-all duration-200 relative group ${
-                                                    isUnread
-                                                        ? "bg-violet-500/10 dark:bg-violet-500/12 border border-violet-500/15 dark:border-violet-500/20"
-                                                        : "bg-white/40 dark:bg-slate-800/30 border border-white/30 dark:border-white/[0.04]"
-                                                } hover:bg-white/80 dark:hover:bg-slate-800/60 hover:shadow-md`}
-                                            >
-                                                {/* Icon */}
-                                                <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center shrink-0 ${colors.color}`}>
-                                                    {getIcon(notification.type)}
-                                                </div>
-
-                                                {/* Content */}
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex justify-between items-start mb-1">
-                                                        <p className={`text-sm ${isUnread ? "font-semibold text-slate-900 dark:text-slate-100" : "font-medium text-slate-600 dark:text-slate-400"} truncate max-w-[85%]`}>
-                                                            {notification.title}
-                                                        </p>
-                                                        <span className="text-xs text-slate-400 dark:text-slate-500 font-medium ml-2 shrink-0">
-                                                            {formatTime(notification.createdAt)}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
-                                                        {notification.message}
-                                                    </p>
-                                                </div>
-
-                                                {/* Delete button (visible on hover) */}
-                                                <button
-                                                    onClick={(e) => handleDeleteClick(e, notification._id)}
-                                                    className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/70 dark:bg-slate-700/70 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 text-slate-400"
-                                                    aria-label="Delete notification"
-                                                >
-                                                    <Trash2 className="w-3.5 h-3.5" />
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
+                            {/* Mark all read button */}
+                            {unreadCount > 0 && (
+                                <div className="px-6 py-4 border-b border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
+                                    <button
+                                        onClick={handleMarkAllRead}
+                                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-violet-600 dark:text-violet-400 bg-violet-500/10 dark:bg-violet-500/15 border border-violet-500/20 dark:border-violet-500/25 cursor-pointer hover:bg-violet-500/20 dark:hover:bg-violet-500/25 transition-colors"
+                                    >
+                                        <Check className="w-[18px] h-[18px]" />
+                                        Mark all as read
+                                    </button>
                                 </div>
                             )}
-                        </div>
 
-                        {/* Footer */}
-                        {notifications.length > 0 && (
-                            <div className="px-6 py-4 text-center border-t border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
-                                <p className="text-[11px] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-semibold">
-                                    End of notifications
-                                </p>
+                            {/* Notifications List */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                                {notifications.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-16 px-6 gap-4">
+                                        <div className="w-[72px] h-[72px] rounded-full bg-violet-500/10 dark:bg-violet-500/15 flex items-center justify-center">
+                                            <Bell className="w-9 h-9 text-violet-500" />
+                                        </div>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400">Your inbox is empty!</p>
+                                        <p className="text-xs text-slate-400 dark:text-slate-500">You&apos;re all caught up</p>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col gap-2">
+                                        {notifications.map((notification) => {
+                                            const colors = getColors(notification.type);
+                                            const isUnread = !notification.read;
+                                            return (
+                                                <div
+                                                    key={notification._id}
+                                                    onClick={() => handleNotificationClick(notification)}
+                                                    className={`flex gap-3.5 p-4 rounded-2xl cursor-pointer transition-all duration-200 relative group ${
+                                                        isUnread
+                                                            ? "bg-violet-500/10 dark:bg-violet-500/12 border border-violet-500/15 dark:border-violet-500/20"
+                                                            : "bg-white/40 dark:bg-slate-800/30 border border-white/30 dark:border-white/[0.04]"
+                                                    } hover:bg-white/80 dark:hover:bg-slate-800/60 hover:shadow-md`}
+                                                >
+                                                    {/* Icon */}
+                                                    <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center shrink-0 ${colors.color}`}>
+                                                        {getIcon(notification.type)}
+                                                    </div>
+
+                                                    {/* Content */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <div className="flex justify-between items-start mb-1">
+                                                            <p className={`text-sm ${isUnread ? "font-semibold text-slate-900 dark:text-slate-100" : "font-medium text-slate-600 dark:text-slate-400"} truncate max-w-[85%]`}>
+                                                                {notification.title}
+                                                            </p>
+                                                            <span className="text-xs text-slate-400 dark:text-slate-500 font-medium ml-2 shrink-0">
+                                                                {formatTime(notification.createdAt)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed line-clamp-2">
+                                                            {notification.message}
+                                                        </p>
+                                                    </div>
+
+                                                    {/* Delete button (visible on hover) */}
+                                                    <button
+                                                        onClick={(e) => handleDeleteClick(e, notification._id)}
+                                                        className="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity bg-white/70 dark:bg-slate-700/70 border border-slate-200 dark:border-slate-600 cursor-pointer hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 text-slate-400"
+                                                        aria-label="Delete notification"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </motion.div>
 
-                    {/* Delete Confirmation */}
-                    <ConfirmDialog
-                        isOpen={!!deletingId}
-                        onClose={() => setDeletingId(null)}
-                        onConfirm={confirmDelete}
-                        title="Delete Notification?"
-                        message="Are you sure you want to delete this notification?"
-                        confirmLabel="Delete"
-                        variant="danger"
-                    />
-                </>
-            )}
+                            {/* Footer */}
+                            {notifications.length > 0 && (
+                                <div className="px-6 py-4 text-center border-t border-black/[0.06] dark:border-white/[0.06] bg-violet-500/5 dark:bg-violet-500/10">
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 tracking-widest uppercase font-semibold">
+                                        End of notifications
+                                    </p>
+                                </div>
+                            )}
+                        </motion.div>
+                    </>
+                )}
+            </AnimatePresence>
+
+            {/* Delete Confirmation (outside panel conditional so it persists independently) */}
+            <ConfirmDialog
+                isOpen={!!deletingId}
+                onClose={() => setDeletingId(null)}
+                onConfirm={confirmDelete}
+                title="Delete Notification?"
+                message="Are you sure you want to delete this notification?"
+                confirmLabel="Delete"
+                variant="danger"
+            />
         </>
     );
 }

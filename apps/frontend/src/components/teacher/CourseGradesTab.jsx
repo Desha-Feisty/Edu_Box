@@ -1,5 +1,7 @@
 import { Award, Download, Table } from "lucide-react";
 import useAuthStore from "../../stores/Authstore.js";
+import { exportBlob } from "../../lib/exportCSV.js";
+import { EmptyState } from "../common/EmptyState";
 
 export default function CourseGradesTab({
     quizzes,
@@ -14,68 +16,21 @@ export default function CourseGradesTab({
 }) {
     const { token } = useAuthStore();
     
-    const exportQuizGrades = async (quizId, quizTitle) => {
-        try {
-            const response = await fetch(`/api/quizzes/${quizId}/grades/export`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error("Export failed");
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `quiz-grades-${quizTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } catch (error) {
-            console.error("Export failed:", error);
-        }
+    const exportQuizGrades = (quizId, quizTitle) => {
+        const filename = `quiz-grades-${quizTitle.replace(/[^a-z0-9]/gi, "-").toLowerCase()}.csv`;
+        return exportBlob(`/api/quizzes/${quizId}/grades/export`, filename, token);
     };
     
-    const exportCourseGrades = async () => {
-        try {
-            const response = await fetch(`/api/courses/${courseId}/grades/export`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error("Export failed");
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `course-grades.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } catch (error) {
-            console.error("Export failed:", error);
-        }
+    const exportCourseGrades = () => {
+        return exportBlob(`/api/courses/${courseId}/grades/export`, "course-grades.csv", token);
     };
     
-    const exportGradesMatrix = async () => {
-        try {
-            const response = await fetch(`/api/courses/${courseId}/grades/matrix-export`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-            if (!response.ok) throw new Error("Export failed");
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `course-grades-matrix.csv`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        } catch (error) {
-            console.error("Export matrix failed:", error);
-        }
+    const exportGradesMatrix = () => {
+        return exportBlob(`/api/courses/${courseId}/grades/matrix-export`, "course-grades-matrix.csv", token);
     };
     
     return (
-        <div className="glass-panel overflow-hidden rounded-3xl border border-white/40 dark:border-slate-700/50 shadow-xl">
+        <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] shadow-xl overflow-hidden">
             <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="card-title text-2xl flex items-center gap-2 text-slate-900 dark:text-white">
@@ -103,13 +58,11 @@ export default function CourseGradesTab({
                 </div>
 
                 {quizzes.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Award className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                        <p className="text-slate-600 dark:text-slate-400">
-                            No quizzes available yet. Create a quiz
-                            to see student grades.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={Award}
+                        title="No quizzes yet"
+                        description="No quizzes available yet. Create a quiz to see student grades."
+                    />
                 ) : (
                     <div className="space-y-6">
                         {/* Quiz Selection */}
@@ -165,12 +118,11 @@ export default function CourseGradesTab({
                                         <span>{gradesError}</span>
                                     </div>
                                 ) : quizGrades.length === 0 ? (
-                                    <div className="text-center py-12">
-                                        <Award className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-                                        <p className="text-slate-600 dark:text-slate-400">
-                                            No graded submissions found yet.
-                                        </p>
-                                    </div>
+                                    <EmptyState
+                                        icon={Award}
+                                        title="No grades yet"
+                                        description="No graded submissions found yet."
+                                    />
                                 ) : (
                                     <div className="overflow-x-auto">
                                         <table className="table table-zebra w-full">

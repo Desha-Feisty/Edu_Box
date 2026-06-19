@@ -408,6 +408,7 @@ async function gradeWrittenResponsesAsync(attemptId: string): Promise<void> {
                     total += gradingResult.score;
                 } catch (error) {
                     console.error("AI grading failed for question:", q._id, error);
+                    resp.aiScore = 0;
                     resp.pointsAwarded = 0;
                     resp.aiFeedback = "AI grading failed. Please contact your teacher.";
                 }
@@ -1051,6 +1052,330 @@ const getBatchStudentGrades = async (req: AuthRequest, res: Response) => {
 };
 
 // Update response score (for teachers to override AI grades)
+/**
+ * Student contests a response grade (written questions only)
+ */
+const contestResponse = async (req: AuthRequest, res: Response) => {
+    try {
+        const { attemptId, responseIndex } = req.params;
+        const { reason } = req.body;
+
+        if (!reason || typeof reason !== "string" || reason.trim().length === 0) {
+            return res.status(400).json({ error: "Contest reason is required" });
+        }
+        if (reason.length > 500) {
+            return res.status(400).json({ error: "Contest reason must be 500 characters or less" });
+        }
+
+        const attempt = await Attempt.findById(attemptId)
+            .populate({ path: "responses.question", model: "Question" });
+
+        if (!attempt) {
+            return res.status(404).json({ error: "Attempt not found" });
+        }
+
+        // Only the attempt owner can contest
+        const userId = req.user?._id;
+        if (!userId || attempt.user.toString() !== userId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
+        // Only graded attempts can be contested
+        if (attempt.status !== "graded") {
+            return res.status(400).json({ error: "Only graded attempts can be contested" });
+        }
+
+        const index = parseInt(responseIndex as string, 10);
+        if (isNaN(index) || index < 0 || index >= attempt.responses.length) {
+            return res.status(400).json({ error: "Invalid response index" });
+        }
+
+        const resp = attempt.responses[index];
+        if (!resp) {
+            return res.status(400).json({ error: "Response not found" });
+        }
+
+        // Only written responses can be contested
+        const question = resp.question as unknown as IQuestion;
+        if (!question || question.questionType !== "written") {
+            return res.status(400).json({ error: "Only written questions can be contested" });
+        }
+
+        // AI must have graded this response
+        if (resp.aiScore === null || resp.aiScore === undefined) {
+            return res.status(400).json({ error: "Response has not been AI-graded yet" });
+        }
+
+        // Already contested?
+        if (resp.contestStatus === "pending") {
+            return res.status(400).json({ error: "This response is already being contested" });
+        }
+
+        // Already resolved? Allow re-contest
+        resp.contestReason = reason.trim();
+        resp.contestStatus = "pending";
+        resp.contestedAt = new Date();
+        attempt.hasContestedResponses = true;
+        await attempt.save();
+
+        // Notify teacher(s) of the course
+        const populatedQuiz = await Quiz.findById(attempt.quiz).populate("course");
+        if (populatedQuiz) {
+            const course = (populatedQuiz as any).course;
+            if (course?.teacher) {
+                const { notifyUser } = await import("../server/socket.js");
+                notifyUser(course.teacher.toString(), "contest-submitted", {
+                    attemptId: attempt._id.toString(),
+                    quizTitle: (populatedQuiz as any).title || "Quiz",
+                    courseTitle: course.title || "Course",
+                    studentName: "A student",
+                });
+            }
+        }
+
+        return res.json({ success: true, contestStatus: "pending" });
+    } catch (err) {
+        console.error("contestResponse error:", err);
+        return res.status(500).json({ error: "Failed to submit contest" });
+    }
+};
+
+/**
+ * Teacher resolves a contest (accepts or overrides score)
+ */
+const resolveContest = async (req: AuthRequest, res: Response) => {
+    try {
+        const { attemptId, responseIndex } = req.params;
+        const { score, feedback, rejectReason } = req.body;
+
+        const attempt = await Attempt.findById(attemptId).populate({
+            path: "quiz",
+            populate: { path: "course" },
+        });
+
+        if (!attempt) {
+            return res.status(404).json({ error: "Attempt not found" });
+        }
+
+        // Verify teacher owns the course
+        const quiz = attempt.quiz as any;
+        if (!quiz || !quiz.course) {
+            return res.status(500).json({ error: "Failed to populate quiz" });
+        }
+        const course = quiz.course as any;
+        const userId = req.user?._id;
+        if (!userId || course.teacher.toString() !== userId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
+        const index = parseInt(responseIndex as string, 10);
+        if (isNaN(index) || index < 0 || index >= attempt.responses.length) {
+            return res.status(400).json({ error: "Invalid response index" });
+        }
+
+        const resp = attempt.responses[index];
+        if (!resp) {
+            return res.status(400).json({ error: "Response not found" });
+        }
+
+        // Update score if provided
+        if (score !== undefined) {
+            resp.pointsAwarded = score;
+        }
+        if (feedback !== undefined) {
+            resp.aiFeedback = feedback;
+        }
+        resp.contestStatus = "resolved";
+
+        // Recalculate total score
+        let total = 0;
+        let maxScore = 0;
+        await attempt.populate({
+            path: "responses.question",
+            model: "Question",
+        });
+        for (const r of attempt.responses) {
+            const q = r.question as any;
+            total += r.pointsAwarded || 0;
+            maxScore += q.points || 1;
+        }
+        attempt.score = total;
+        attempt.maxScore = maxScore;
+
+        // Re-check if any responses remain contested
+        attempt.hasContestedResponses = attempt.responses.some(r => r.contestStatus === "pending");
+
+        await attempt.save();
+
+        // Notify student (include teacher's message if provided)
+        const { notifyUser } = await import("../server/socket.js");
+        notifyUser(attempt.user.toString(), "contest-resolved", {
+            attemptId: attempt._id.toString(),
+            quizTitle: quiz.title || "Quiz",
+            responseIndex: index,
+            resolved: true,
+            teacherMessage: feedback || undefined,
+        });
+
+        return res.json({
+            success: true,
+            pointsAwarded: resp.pointsAwarded,
+            contestStatus: "resolved",
+            totalScore: total,
+            maxScore: maxScore,
+        });
+    } catch (err) {
+        console.error("resolveContest error:", err);
+        return res.status(500).json({ error: "Failed to resolve contest" });
+    }
+};
+
+/**
+ * Teacher gets all contested attempts across their courses
+ */
+const getContestedAttempts = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
+        // Find courses where this user is teacher
+        const courses = await Course.find({ teacher: userId }).select("_id").lean();
+        const courseIds = courses.map(c => c._id);
+
+        // Find quizzes in those courses
+        const quizzes = await Quiz.find({ course: { $in: courseIds } }).select("_id title course").lean();
+        const quizIds = quizzes.map(q => q._id);
+        const quizMap = new Map(quizzes.map(q => [q._id.toString(), q]));
+
+        // Find attempts with contested responses (pending or resolved)
+        const attempts = await Attempt.find({
+            quiz: { $in: quizIds },
+            responses: {
+                $elemMatch: {
+                    contestStatus: { $in: ["pending", "resolved"] },
+                },
+            },
+        })
+            .populate("user", "name email")
+            .populate({
+                path: "responses.question",
+                model: "Question",
+            })
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        // Map to return structure
+        const result = attempts.map((a) => {
+            const quizInfo = quizMap.get((a.quiz as any).toString());
+            return {
+                _id: a._id.toString(),
+                student: a.user,
+                quiz: quizInfo ? { _id: quizInfo._id, title: quizInfo.title } : null,
+                submittedAt: a.submittedAt,
+                responses: a.responses
+                    .filter(r => r.contestStatus === "pending" || r.contestStatus === "resolved")
+                    .map((r) => ({
+                        index: a.responses.indexOf(r),
+                        prompt: (r.question as any)?.prompt || "Question",
+                        points: (r.question as any)?.points || 1,
+                        pointsAwarded: r.pointsAwarded,
+                        aiScore: r.aiScore,
+                        aiFeedback: r.aiFeedback,
+                        textAnswer: r.textAnswer,
+                        contestReason: r.contestReason,
+                        contestedAt: r.contestedAt,
+                        contestStatus: r.contestStatus,
+                    })),
+            };
+        });
+
+        return res.json({ attempts: result });
+    } catch (err) {
+        console.error("getContestedAttempts error:", err);
+        return res.status(500).json({ error: "Failed to fetch contested attempts" });
+    }
+};
+
+/**
+ * Teacher gets attempts with ungraded written questions (AI grading failed or pending)
+ */
+const getUngradedAttempts = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?._id;
+        if (!userId) {
+            return res.status(403).json({ error: "Forbidden" });
+        }
+
+        // Find courses where this user is teacher
+        const courses = await Course.find({ teacher: userId }).select("_id").lean();
+        const courseIds = courses.map(c => c._id);
+
+        // Find quizzes in those courses
+        const quizzes = await Quiz.find({ course: { $in: courseIds } }).select("_id title course").lean();
+        const quizIds = quizzes.map(q => q._id);
+        const quizMap = new Map(quizzes.map(q => [q._id.toString(), q]));
+
+        // Find attempts with written responses that haven't been graded by AI
+        // Status could be "submitted" (AI pending) or "graded" (AI failed/gave 0)
+        const attempts = await Attempt.find({
+            quiz: { $in: quizIds },
+            status: { $in: ["submitted", "graded"] },
+        })
+            .populate("user", "name email")
+            .populate({
+                path: "responses.question",
+                model: "Question",
+            })
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        // Map to return structure — include only written responses needing grading
+        const result = attempts
+            .map((a) => {
+                const quizInfo = quizMap.get((a.quiz as any).toString());
+                const ungradedResponses = a.responses
+                    .filter(r => {
+                        const q = r.question as any;
+                        // Must be written, have a text answer, not already contested, and not AI-graded
+                        return q?.questionType === "written"
+                            && r.textAnswer?.trim()
+                            && r.contestStatus !== "pending"
+                            && (r.aiScore === null || r.aiScore === undefined);
+                    })
+                    .map((r, idx) => ({
+                        index: a.responses.indexOf(r),
+                        prompt: (r.question as any)?.prompt || "Question",
+                        points: (r.question as any)?.points || 1,
+                        pointsAwarded: r.pointsAwarded,
+                        aiScore: r.aiScore,
+                        aiFeedback: r.aiFeedback,
+                        textAnswer: r.textAnswer,
+                        contestReason: r.contestReason,
+                        contestStatus: r.contestStatus,
+                    }));
+
+                if (ungradedResponses.length === 0) return null;
+
+                return {
+                    _id: a._id.toString(),
+                    student: a.user,
+                    quiz: quizInfo ? { _id: quizInfo._id, title: quizInfo.title } : null,
+                    submittedAt: a.submittedAt,
+                    status: a.status,
+                    responses: ungradedResponses,
+                };
+            })
+            .filter(Boolean);
+
+        return res.json({ attempts: result });
+    } catch (err) {
+        console.error("getUngradedAttempts error:", err);
+        return res.status(500).json({ error: "Failed to fetch ungraded attempts" });
+    }
+};
+
 const updateResponseScore = async (req: AuthRequest, res: Response) => {
     try {
         const { attemptId, responseIndex } = req.params;
@@ -1120,6 +1445,9 @@ const updateResponseScore = async (req: AuthRequest, res: Response) => {
         
         attempt.score = total;
         attempt.maxScore = maxScore;
+        if (attempt.status !== "graded") {
+            attempt.status = "graded";
+        }
         await attempt.save();
 
         return res.json({ 
@@ -1150,6 +1478,10 @@ export {
     updateResponseScore,
     getTeacherRecentSubmissions,
     debugMyAttempts,
+    contestResponse,
+    resolveContest,
+    getContestedAttempts,
+    getUngradedAttempts,
 };
 
 /**

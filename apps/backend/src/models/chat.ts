@@ -6,6 +6,7 @@ export interface IChatMessage {
     recipient: Types.ObjectId;
     senderRole: string;
     text: string;
+    isRead: boolean;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -21,6 +22,7 @@ const chatMessageSchema = new Schema<IChatMessage>(
             required: true,
         },
         text: { type: String, required: true },
+        isRead: { type: Boolean, default: false, index: true },
     },
     { timestamps: true },
 );

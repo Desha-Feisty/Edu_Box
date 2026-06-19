@@ -37,7 +37,7 @@ function getTestMongoUri(): string {
     if (originalUri) {
         // Replace the database name in the URI to use a test DB
         // e.g., mongodb+srv://.../smartschool?... → mongodb+srv://.../test_edubox_<rand>?...
-        const replaced = originalUri.replace(/\/[^/?]+\?/, `/${dbName}?`);
+        const replaced = originalUri.replace(/\/[^/?]+(\?|$)/, `/${dbName}$1`);
         return replaced;
     }
 
@@ -50,8 +50,8 @@ function getTestMongoUri(): string {
 }
 
 export async function setupTestDB(): Promise<void> {
-    instanceCount++;
     if (mongoose.connection.readyState === 1) return;
+    instanceCount++;
 
     const uri = getTestMongoUri();
     await mongoose.connect(uri);

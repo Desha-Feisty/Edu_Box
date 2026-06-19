@@ -8,26 +8,28 @@ import useNotificationStore from "./stores/NotificationStore";
 import useQuizStore from "./stores/Quizstore";
 import useTeacherStore from "./stores/Teacherstore";
 import useChatStore from "./stores/ChatStore";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import ChatWindow from "./components/ChatWindow";
 import { LoadingPage } from "./components/common/Loading";
 import ErrorBoundary from "./components/common/ErrorBoundary";
 import ConnectionStatus from "./components/common/ConnectionStatus";
 import AppLayout from "./components/layout/AppLayout";
+import ProtectedRoute from "./components/layout/ProtectedRoute";
 import { useDebouncedCallback } from "./hooks/useDebounce";
+import useSocketInvalidation from "./hooks/useSocketInvalidation";
 import AdminProvider from "./contexts/AdminContext";
 
 // Regular imports (non-lazy)
 import LoginPage from "./pages/LoginPage.jsx";
-import AnalyticsPage from "./pages/AnalyticsPage.jsx";
 
 // Lazy load pages for code splitting
-const StudentPage = lazy(() => import("./pages/StudentPage.jsx"));
-const TeacherPage = lazy(() => import("./pages/TeacherPage.jsx"));
 const TeacherCoursePage = lazy(() => import("./pages/TeacherCoursePage.jsx"));
 const QuizQuestionsPage = lazy(() => import("./pages/QuizQuestionsPage.jsx"));
 const StudentQuizPage = lazy(() => import("./components/StudentQuizPage.jsx"));
 const QuizResultsPage = lazy(() => import("./components/QuizResultsPage.jsx"));
 const QuizSubmittedPage = lazy(() => import("./components/QuizSubmittedPage.jsx"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage.jsx"));
 const NoteDetail = lazy(() => import("./components/NoteDetail.jsx"));
 
 // Admin pages - lazy loaded
@@ -49,6 +51,7 @@ const StudentCalendarPage = lazy(() => import("./pages/StudentCalendarPage.jsx")
 const TeacherCoursesPage = lazy(() => import("./pages/TeacherCoursesPage.jsx"));
 const TeacherChatsPage = lazy(() => import("./pages/TeacherChatsPage.jsx"));
 const TeacherQuizCreatePage = lazy(() => import("./pages/TeacherQuizCreatePage.jsx"));
+const TeacherReviewRequestsPage = lazy(() => import("./pages/TeacherReviewRequestsPage.jsx"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage.jsx"));
 const SettingsPage = lazy(() => import("./pages/SettingsPage.jsx"));
 
@@ -73,6 +76,9 @@ function SocketListener() {
             connect(token);
         }
     }, [token, connect]);
+
+    // Bridge socket events → TanStack Query cache invalidation
+    useSocketInvalidation();
 
     // Fetch notifications immediately for real-time badge update, except for chat (debounced)
     const fetchNotifsDirect = () => {
@@ -263,48 +269,49 @@ function App() {
 
     // Render app with ErrorBoundary for error handling
     return (
+        <QueryClientProvider client={queryClient}>
         <ErrorBoundary>
             <Toaster position="top-right" />
             <SocketListener />
-            <Suspense fallback={<LoadingPage />}>
+            <ErrorBoundary>
+                <Suspense fallback={<LoadingPage />}>
                 <Routes>
                     {/* Public Routes */}
                     <Route path="/" element={<Navigate to="/login" />} />
                     <Route path="/login" element={<LoginPage />} />
 
-                    {/* Student Routes with App Layout */}
+                    {/* Authenticated Routes — all share AppLayout */}
+                    <Route element={<ProtectedRoute />}>
                     <Route element={<AppLayout />}>
-                        {/* Dashboard - Rich widgets */}
-                        <Route path="/student" element={<StudentDashboard />} />
-                        <Route path="/student/analytics" element={<AnalyticsPage />} />
 
-                        {/* Standalone Pages */}
-                        <Route path="/student/courses" element={<StudentCoursesPage />} />
-                        <Route path="/student/quizzes" element={<StudentQuizzesPage />} />
-                        <Route path="/student/grades" element={<StudentGradesPage />} />
-                        <Route path="/student/calendar" element={<StudentCalendarPage />} />
-                        <Route path="/student/quiz/:attemptId" element={<StudentQuizPage />} />
-                        <Route path="/student/quiz/:attemptId/results" element={<QuizResultsPage />} />
-                        <Route path="/student/quiz/:attemptId/submitted" element={<QuizSubmittedPage />} />
-                        <Route path="/note/:noteId" element={<NoteDetail />} />
-                    </Route>
+                        {/* Student Routes */}
+                        <Route element={<ProtectedRoute allowedRoles={["student"]} />}>
+                            <Route path="/student" element={<StudentDashboard />} />
+                            <Route path="/student/analytics" element={<AnalyticsPage />} />
+                            <Route path="/student/courses" element={<StudentCoursesPage />} />
+                            <Route path="/student/quizzes" element={<StudentQuizzesPage />} />
+                            <Route path="/student/grades" element={<StudentGradesPage />} />
+                            <Route path="/student/calendar" element={<StudentCalendarPage />} />
+                            <Route path="/student/quiz/:attemptId" element={<StudentQuizPage />} />
+                            <Route path="/student/quiz/:attemptId/results" element={<QuizResultsPage />} />
+                            <Route path="/student/quiz/:attemptId/submitted" element={<QuizSubmittedPage />} />
+                            <Route path="/note/:noteId" element={<NoteDetail />} />
+                        </Route>
 
-                    {/* Teacher Routes with App Layout */}
-                    <Route element={<AppLayout />}>
-                        {/* Dashboard - Rich widgets */}
-                        <Route path="/teacher" element={<TeacherDashboard />} />
-                        <Route path="/teacher/analytics" element={<AnalyticsPage />} />
+                        {/* Teacher Routes */}
+                        <Route element={<ProtectedRoute allowedRoles={["teacher"]} />}>
+                            <Route path="/teacher" element={<TeacherDashboard />} />
+                            <Route path="/teacher/analytics" element={<AnalyticsPage />} />
+                            <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
+                            <Route path="/teacher/chats" element={<TeacherChatsPage />} />
+                            <Route path="/teacher/quiz/create" element={<TeacherQuizCreatePage />} />
+                            <Route path="/teacher/course/:id" element={<TeacherCoursePage />} />
+                            <Route path="/teacher/quiz/:id/questions" element={<QuizQuestionsPage />} />
+                            <Route path="/teacher/review-requests" element={<TeacherReviewRequestsPage />} />
+                        </Route>
 
-                        {/* Standalone Pages */}
-                        <Route path="/teacher/courses" element={<TeacherCoursesPage />} />
-                        <Route path="/teacher/chats" element={<TeacherChatsPage />} />
-                        <Route path="/teacher/quiz/create" element={<TeacherQuizCreatePage />} />
-                        <Route path="/teacher/course/:id" element={<TeacherCoursePage />} />
-                        <Route path="/teacher/quiz/:id/questions" element={<QuizQuestionsPage />} />
-                    </Route>
-
-                    {/* Admin Routes */}
-                    <Route element={<AppLayout />}>
+                        {/* Admin Routes */}
+                        <Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
                         <Route path="/admin" element={
                             <AdminProvider>
                                 <Suspense fallback={<div className="min-h-screen" />}>
@@ -318,15 +325,16 @@ function App() {
                             <Route path="logs" element={<AdminLogs />} />
                             <Route path="tickets" element={<AdminTickets />} />
                         </Route>
-                    </Route>
+                        </Route>
 
-                    {/* Shared Routes */}
-                    <Route element={<AppLayout />}>
+                        {/* Shared Routes — any authenticated user */}
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
                     </Route>
+                    </Route>
                 </Routes>
             </Suspense>
+            </ErrorBoundary>
 
             {/* Global Chat Window */}
             <ChatWindowWrapper />
@@ -334,6 +342,7 @@ function App() {
             {/* Connection Status - Shows backend availability */}
             <ConnectionStatus />
         </ErrorBoundary>
+        </QueryClientProvider>
     );
 }
 

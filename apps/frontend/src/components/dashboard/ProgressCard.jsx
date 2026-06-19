@@ -88,7 +88,7 @@ function ProgressCard({
                     <div
                         className={`w-11 h-11 rounded-xl ${colors.light} flex items-center justify-center flex-shrink-0`}
                     >
-                        <Icon className={`w-5.5 h-5.5 ${colors.text}`} />
+                        <Icon className={`w-[22px] h-[22px] ${colors.text}`} />
                     </div>
                 </div>
                 {trend && (
@@ -116,7 +116,7 @@ function ProgressCard({
                     <div
                         className={`w-9 h-9 rounded-lg ${colors.light} flex items-center justify-center shrink-0`}
                     >
-                        <Icon className={`w-4.5 h-4.5 ${colors.text}`} />
+                        <Icon className={`w-[18px] h-[18px] ${colors.text}`} />
                     </div>
                     <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-900 dark:text-white text-sm truncate">

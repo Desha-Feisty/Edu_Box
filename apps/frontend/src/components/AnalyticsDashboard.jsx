@@ -84,6 +84,14 @@ function AnalyticsDashboard({ courseId, mode = "student" }) {
 
     // KPI-only lightweight mode for dashboard cards
     if (mode === 'kpi-only') {
+        if (!data || (!data.students && !data.quizStats?.length && !data.quizzes && !data.avgScore && !data.history?.length)) {
+            return (
+                <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06]">
+                    <TrendingUp className="w-12 h-12 text-slate-300 dark:text-slate-600 mb-4" />
+                    <p className="text-slate-500 dark:text-slate-400">Not enough data to display analytics yet.</p>
+                </div>
+            );
+        }
         return (
             <div className="bg-white dark:bg-base-200 rounded-2xl p-4">
                 <div className="grid grid-cols-3 gap-3">

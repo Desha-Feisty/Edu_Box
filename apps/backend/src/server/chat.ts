@@ -163,6 +163,17 @@ export function initializeChat(io: SocketIOServer) {
                 });
                 socket.join(room);
 
+                // Mark messages sent TO this user as read
+                await ChatMessage.updateMany(
+                    {
+                        course: courseId,
+                        sender: peerId as any,
+                        recipient: user._id as any,
+                        isRead: false,
+                    },
+                    { isRead: true },
+                );
+
                 const messages = await ChatMessage.find({
                     course: courseId,
                     $or: [

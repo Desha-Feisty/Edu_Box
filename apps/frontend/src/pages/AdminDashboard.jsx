@@ -37,7 +37,7 @@ export default function AdminDashboard() {
       }
     };
     fetchAdminData();
-  }, [listAllCourses, fetchAvailableQuizzes, allCourses]);
+  }, [listAllCourses, fetchAvailableQuizzes]);
 
   // Compute real stats
   const coursesCount = allCourses.length;

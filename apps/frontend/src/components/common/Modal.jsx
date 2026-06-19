@@ -44,7 +44,7 @@ export function Modal({
 
     return (
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[500] flex items-center justify-center p-4"
             role="dialog"
             aria-modal="true"
             aria-labelledby="modal-title"
@@ -59,7 +59,7 @@ export function Modal({
             {/* Modal Content */}
                 <div
                 ref={modalRef}
-                className={`glass-panel relative w-full ${sizeClasses[size]} bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 animate-in fade-in zoom-in-95 duration-200 ${className}`}
+                className={`glass-panel relative w-full ${sizeClasses[size]} p-6 animate-in fade-in zoom-in-95 duration-200 ${className}`}
             >
                 {/* Header */}
                 {(title || showClose) && (

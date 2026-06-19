@@ -1,5 +1,7 @@
 import { Schema, model, Types, Document } from "mongoose";
 import type { IQuiz } from "./quiz.js";
+export type ContestStatus = "pending" | "resolved" | "none";
+
 export interface IResponse {
     question: Types.ObjectId;
     selectedChoiceIds: Types.ObjectId[];
@@ -7,6 +9,9 @@ export interface IResponse {
     aiScore?: number;
     aiFeedback?: string;
     pointsAwarded?: number;
+    contestReason?: string;
+    contestStatus?: ContestStatus;
+    contestedAt?: Date;
 }
 
 const responseSchema = new Schema<IResponse>({
@@ -16,6 +21,9 @@ const responseSchema = new Schema<IResponse>({
     aiScore: { type: Number },
     aiFeedback: { type: String },
     pointsAwarded: { type: Number, default: 0 },
+    contestReason: { type: String },
+    contestStatus: { type: String, enum: ["pending", "resolved", "none"], default: "none" },
+    contestedAt: { type: Date },
 });
 
 export type AttemptStatus = "inProgress" | "graded" | "expired" | "late" | "submitted";
@@ -29,6 +37,7 @@ export interface IAttempt {
     score?: number;
     maxScore?: number;
     responses: IResponse[];
+    hasContestedResponses?: boolean;
 }
 
 const attemptSchema = new Schema<IAttempt>(
@@ -46,6 +55,7 @@ const attemptSchema = new Schema<IAttempt>(
         score: { type: Number, default: 0 },
         maxScore: { type: Number, default: 0 },
         responses: [responseSchema],
+        hasContestedResponses: { type: Boolean, default: false, index: true },
     },
     { timestamps: true },
 );

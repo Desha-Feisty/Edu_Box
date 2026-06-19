@@ -13,7 +13,6 @@ import {
     ChevronLeft,
     Sparkles,
 } from "lucide-react";
-import PageWrapper from "../components/layout/PageWrapper";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
 import useQuizStore from "../stores/Quizstore";
@@ -114,7 +113,7 @@ export default function TeacherQuizCreatePage() {
         if (newQuiz.openAt) {
             const openDate = new Date(newQuiz.openAt);
             if (openDate.getTime() < Date.now() - 60000) {
-                errors.openAt = "Open date must be in the future";
+                errors.openAt = "Open date must be in the future or within 60 seconds";
             }
         }
         if (newQuiz.closeAt && newQuiz.openAt) {
@@ -177,16 +176,13 @@ export default function TeacherQuizCreatePage() {
 
     if (isLoading) {
         return (
-            <PageWrapper>
-                <div className="flex items-center justify-center min-h-[60vh]">
-                    <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
-                </div>
-            </PageWrapper>
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-10 h-10 border-4 border-brand-200 dark:border-brand-700 border-t-brand-600 rounded-full animate-spin" />
+            </div>
         );
     }
 
     return (
-        <PageWrapper>
             <main className="max-w-5xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">
@@ -770,6 +766,5 @@ export default function TeacherQuizCreatePage() {
                     </div>
                 )}
             </main>
-        </PageWrapper>
     );
 }

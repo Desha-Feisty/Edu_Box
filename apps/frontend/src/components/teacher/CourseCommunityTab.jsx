@@ -1,6 +1,8 @@
 import { MessageSquare } from "lucide-react";
 import NoteForm from "../NoteForm";
 import NoteCard from "../NoteCard";
+import { SkeletonList } from "../common/Skeleton";
+import { EmptyState } from "../common/EmptyState";
 
 export default function CourseCommunityTab({
     courseId,
@@ -26,19 +28,15 @@ export default function CourseCommunityTab({
                 </h2>
 
                 {notesLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                        <span className="loading loading-spinner loading-lg text-blue-600"></span>
+                    <div className="py-12">
+                        <SkeletonList rows={3} />
                     </div>
                 ) : courseNotes.length === 0 ? (
-                    <div className="card bg-purple-50 border border-purple-200 border-dashed">
-                        <div className="card-body text-center py-12">
-                            <MessageSquare className="w-16 h-16 text-purple-300 mx-auto mb-4" />
-                            <p className="text-gray-600">
-                                No notes posted yet. Create one to
-                                engage with students!
-                            </p>
-                        </div>
-                    </div>
+                    <EmptyState
+                        icon={MessageSquare}
+                        title="No notes yet"
+                        description="No notes posted yet. Create one to engage with students!"
+                    />
                 ) : (
                     <div className="space-y-4">
                         {courseNotes.map((note) => (

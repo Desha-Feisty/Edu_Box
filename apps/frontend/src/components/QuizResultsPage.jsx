@@ -24,6 +24,8 @@ function QuizResultsPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [animatedScore, setAnimatedScore] = useState(0);
+    const [contestForm, setContestForm] = useState(null); // { responseIndex, reason }
+    const [contestSubmitting, setContestSubmitting] = useState(false);
     const scoreRef = useRef(null);
 
     useEffect(() => {
@@ -58,6 +60,34 @@ function QuizResultsPage() {
 
         fetchAttempt();
     }, [attemptId, currentAttempt, token]);
+
+    const handleContestSubmit = async (responseIndex) => {
+        const reason = contestForm?.reason?.trim();
+        if (!reason) return;
+        setContestSubmitting(true);
+        try {
+            await axios.post(
+                `/api/attempts/${attemptId}/responses/${responseIndex}/contest`,
+                { reason },
+                { headers: { Authorization: `Bearer ${token}` } },
+            );
+            setContestForm(null);
+            // Refresh attempt to show contest status
+            const resp = await axios.get(`/api/attempts/${attemptId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            setAttempt({
+                ...resp.data.attempt,
+                quiz: resp.data.quiz,
+                course: resp.data.course,
+                responses: resp.data.responses,
+            });
+        } catch (err) {
+            alert(err.response?.data?.error || "Failed to submit contest");
+        } finally {
+            setContestSubmitting(false);
+        }
+    };
 
     // Calculate stats (safe for null attempt during initial loading)
     const rawScore = attempt
@@ -411,6 +441,67 @@ function QuizResultsPage() {
                                                                         {response.aiFeedback}
                                                                     </p>
                                                                 </div>
+                                                            )}
+
+                                                            {/* Contest / Request Review */}
+                                                            {response.contestStatus === "pending" ? (
+                                                                <div className="mt-3 flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
+                                                                    <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                                                    <span className="text-amber-700 dark:text-amber-300 font-medium">
+                                                                        Review requested — waiting for teacher
+                                                                    </span>
+                                                                </div>
+                                                            ) : response.contestStatus === "resolved" ? (
+                                                                <div className="mt-3 flex items-center gap-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                                                                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                                    <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                                                                        Review completed
+                                                                    </span>
+                                                                </div>
+                                                            ) : contestForm?.responseIndex === index ? (
+                                                                <div className="mt-3 bg-white dark:bg-base-300 p-4 rounded-xl border border-brand-200 dark:border-brand-800 space-y-3">
+                                                                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                                                                        Why do you think this should be reviewed?
+                                                                    </p>
+                                                                    <textarea
+                                                                        className="textarea textarea-bordered w-full text-sm"
+                                                                        rows={3}
+                                                                        maxLength={500}
+                                                                        placeholder="Explain why your answer deserves a different score..."
+                                                                        value={contestForm.reason}
+                                                                        onChange={(e) =>
+                                                                            setContestForm((prev) => ({ ...prev, reason: e.target.value }))
+                                                                        }
+                                                                    />
+                                                                    <div className="flex items-center gap-2 justify-end">
+                                                                        <button
+                                                                            className="btn btn-ghost btn-sm"
+                                                                            onClick={() => setContestForm(null)}
+                                                                        >
+                                                                            Cancel
+                                                                        </button>
+                                                                        <button
+                                                                            className="btn btn-brand btn-sm"
+                                                                            disabled={contestSubmitting || !contestForm?.reason?.trim()}
+                                                                            onClick={() => handleContestSubmit(index)}
+                                                                        >
+                                                                            {contestSubmitting ? (
+                                                                                <span className="loading loading-spinner loading-xs" />
+                                                                            ) : (
+                                                                                "Submit Request"
+                                                                            )}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    className="mt-3 btn btn-outline btn-sm gap-2 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                                    onClick={() =>
+                                                                        setContestForm({ responseIndex: index, reason: "" })
+                                                                    }
+                                                                >
+                                                                    Request Review
+                                                                </button>
                                                             )}
                                                         </div>
                                                     ) : (

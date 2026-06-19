@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import useQuizStore from "../stores/Quizstore";
 import toast from "react-hot-toast";
-import PageWrapper from "../components/layout/PageWrapper";
 import StudentQuizzesTab from "../components/student/StudentQuizzesTab";
 
 function StudentQuizzesPage() {
@@ -52,7 +51,6 @@ function StudentQuizzesPage() {
     const unattemptedQuizzes = availableQuizzes.filter((q) => !q.isAttempted);
 
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -69,7 +67,6 @@ function StudentQuizzesPage() {
                     handleStartQuiz={handleStartQuiz}
                 />
             </main>
-        </PageWrapper>
     );
 }
 

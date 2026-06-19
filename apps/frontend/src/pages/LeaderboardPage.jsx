@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../stores/Authstore";
 import useTeacherStore from "../stores/Teacherstore";
-import PageWrapper from "../components/layout/PageWrapper";
 import Leaderboard from "../components/Leaderboard";
 import { Trophy } from "lucide-react";
+import { EmptyState } from "../components/common/EmptyState";
 
 function LeaderboardPage() {
     const { token, role } = useAuthStore();
@@ -28,7 +28,6 @@ function LeaderboardPage() {
     const isTeacher = role === "teacher";
 
     return (
-        <PageWrapper>
             <main className="max-w-7xl mx-auto px-6 py-8 animate-in fade-in duration-500 w-full relative z-10">
                 <div className="mb-8">
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
@@ -64,29 +63,26 @@ function LeaderboardPage() {
 
                 {/* Leaderboard */}
                 {role === "admin" ? (
-                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-8 text-center">
-                        <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500">
-                            Leaderboard is available for students and teachers.
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={Trophy}
+                        title="Leaderboard for Students & Teachers"
+                        description="Leaderboard is available for students and teachers."
+                    />
                 ) : allCourses.length > 0 ? (
                     <Leaderboard
                         courseId={selectedCourseId || allCourses[0]._id}
                         isTeacher={isTeacher}
                     />
                 ) : (
-                    <div className="bg-white dark:bg-base-200 rounded-2xl border border-dashed border-slate-200/60 dark:border-white/[0.06] p-8 text-center">
-                        <Trophy className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                        <p className="text-slate-500">
-                            {role === "student"
-                                ? "Join a course to see the leaderboard!"
-                                : "Create a course to see the leaderboard!"}
-                        </p>
-                    </div>
+                    <EmptyState
+                        icon={Trophy}
+                        title="No courses"
+                        description={role === "student"
+                            ? "Join a course to see the leaderboard!"
+                            : "Create a course to see the leaderboard!"}
+                    />
                 )}
             </main>
-        </PageWrapper>
     );
 }
 
