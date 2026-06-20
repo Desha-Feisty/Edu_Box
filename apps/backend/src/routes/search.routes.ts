@@ -103,11 +103,11 @@ router.get("/", async (req: AuthRequest, res) => {
                 results.tickets = await Ticket.find({
                     $or: [
                         { subject: { $regex: query, $options: "i" } },
-                        { description: { $regex: query, $options: "i" } },
+                        { message: { $regex: query, $options: "i" } },
                     ],
                 })
                 .limit(10)
-                .select("subject description status priority createdAt user")
+                .select("subject message status createdAt user")
                 .populate("user", "name email")
                 .lean();
             }

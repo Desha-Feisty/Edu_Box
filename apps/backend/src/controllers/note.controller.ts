@@ -72,6 +72,7 @@ const createNote = async (req: AuthRequest, res: Response) => {
                 const { notifyUsers } = await import("../server/socket.js");
                 notifyUsers(studentIds, "new-note", {
                     noteId: note._id,
+                    courseId: note.course.toString(),
                     title: note.title,
                     courseTitle: (course as any).title,
                 });
@@ -162,7 +163,7 @@ const getNoteWithComments = async (req: AuthRequest, res: Response) => {
 
         // Allow access if user is the course teacher OR enrolled as a student
         const isTeacher =
-            (note.teacher as any)?._id.toString() === req.user._id;
+            req.user?._id?.toString() === (note.teacher as any)?._id?.toString();
         const courseId = (note.course as any)?._id;
         const enrolled = isTeacher
             ? true

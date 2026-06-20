@@ -295,7 +295,6 @@ function App() {
                             <Route path="/student/quiz/:attemptId" element={<StudentQuizPage />} />
                             <Route path="/student/quiz/:attemptId/results" element={<QuizResultsPage />} />
                             <Route path="/student/quiz/:attemptId/submitted" element={<QuizSubmittedPage />} />
-                            <Route path="/note/:noteId" element={<NoteDetail />} />
                         </Route>
 
                         {/* Teacher Routes */}
@@ -330,6 +329,7 @@ function App() {
                         {/* Shared Routes — any authenticated user */}
                         <Route path="/leaderboard" element={<LeaderboardPage />} />
                         <Route path="/settings" element={<SettingsPage />} />
+                        <Route path="/note/:noteId" element={<NoteDetail />} />
                     </Route>
                     </Route>
                 </Routes>

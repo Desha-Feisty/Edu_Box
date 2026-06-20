@@ -57,7 +57,9 @@ const saveNotification = async (userId: string, event: string, data: any) => {
             title = "New Course Note";
             message = `A new note "${data.title}" has been posted.`;
             link =
-                user.role === "student" ? `/note/${data.noteId}` : "/teacher";
+                user.role === "student"
+                    ? `/note/${data.noteId}`
+                    : `/teacher/course/${data.courseId}?tab=community`;
         } else if (event === "chat-message") {
             const senderName =
                 typeof data.sender === "object" ? data.sender.name : "Teammate";

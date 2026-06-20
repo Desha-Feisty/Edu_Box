@@ -130,13 +130,6 @@ export const notesApi = {
     delete: (id) => api.delete(`/notes/${id}`),
 };
 
-// Comments API
-export const commentsApi = {
-    list: (noteId) => api.get("/comments", { params: { noteId } }),
-    create: (data) => api.post("/comments", data),
-    delete: (id) => api.delete(`/comments/${id}`),
-};
-
 // Chat API
 export const chatApi = {
     list: (courseId) => api.get("/chats", { params: { courseId } }),

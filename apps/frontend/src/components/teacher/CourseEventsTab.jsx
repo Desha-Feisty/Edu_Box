@@ -15,16 +15,6 @@ import {
 } from "lucide-react";
 import { EmptyState } from "../common/EmptyState";
 
-const TABS = [
-    { id: "quizzes", label: "Quizzes" },
-    { id: "events", label: "Events" },
-    { id: "students", label: "Students" },
-    { id: "grades", label: "Grades" },
-    { id: "analytics", label: "Analytics" },
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "community", label: "Community" },
-];
-
 export default function CourseEventsTab({ courseId, _course }) {
     const { 
         calendarEvents, 

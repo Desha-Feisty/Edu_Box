@@ -97,8 +97,8 @@ function SettingsPage() {
     const handleCloseTicket = async (ticketId) => {
         try {
             await axios.patch(
-                `/api/tickets/${ticketId}`,
-                { status: "closed" },
+                `/api/tickets/${ticketId}/close`,
+                {},
                 { headers: { Authorization: `Bearer ${token}` } }
             );
             toast.success("Ticket closed");
@@ -112,8 +112,6 @@ function SettingsPage() {
         switch (status) {
             case "open":
                 return "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400";
-            case "in-progress":
-                return "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400";
             case "closed":
                 return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400";
             default:
@@ -209,9 +207,34 @@ function SettingsPage() {
                             <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 sm:p-8">
                                 <h2 className="text-xl font-bold mb-6">Security Settings</h2>
                                 <form
-                                    onSubmit={(e) => {
+                                    onSubmit={async (e) => {
                                         e.preventDefault();
-                                        toast.error("Password change functionality is currently disabled");
+                                        if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+                                            toast.error("Please fill in all password fields");
+                                            return;
+                                        }
+                                        if (passwordData.newPassword.length < 8) {
+                                            toast.error("New password must be at least 8 characters");
+                                            return;
+                                        }
+                                        if (passwordData.newPassword !== passwordData.confirmPassword) {
+                                            toast.error("New passwords do not match");
+                                            return;
+                                        }
+                                        try {
+                                            await axios.put(
+                                                "/api/auth/password",
+                                                {
+                                                    currentPassword: passwordData.currentPassword,
+                                                    newPassword: passwordData.newPassword,
+                                                },
+                                                { headers: { Authorization: `Bearer ${token}` } }
+                                            );
+                                            toast.success("Password changed successfully");
+                                            setPasswordData({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                                        } catch (err) {
+                                            toast.error(err.response?.data?.errMsg || "Failed to change password");
+                                        }
                                     }}
                                     className="space-y-4"
                                 >
@@ -392,14 +415,14 @@ function SettingsPage() {
                                                     <p className="text-slate-600 dark:text-slate-400 text-sm mb-4 leading-relaxed">
                                                         {ticket.message}
                                                     </p>
-                                                    {ticket.response && (
+                                                    {ticket.adminReply && (
                                                         <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-xl mb-4 border border-blue-100 dark:border-blue-800">
                                                             <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-400 font-bold text-xs uppercase">
                                                                 <MessageSquare className="w-3.5 h-3.5" />
                                                                 Official Response
                                                             </div>
                                                             <p className="text-slate-700 dark:text-slate-300 text-sm italic">
-                                                                "{ticket.response}"
+                                                                "{ticket.adminReply}"
                                                             </p>
                                                         </div>
                                                     )}

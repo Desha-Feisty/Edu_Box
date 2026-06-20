@@ -86,7 +86,8 @@ export default function NoteDetail() {
         try {
             await deleteNote(noteId);
             toast.success("Note deleted successfully");
-            navigate(-1);
+            const homePath = user?.role === "teacher" ? "/teacher/courses" : user?.role === "admin" ? "/admin" : "/student/courses";
+            navigate(homePath);
         } catch (err) {
             toast.error(err.message || "Failed to delete note");
             setIsUploading(false);
