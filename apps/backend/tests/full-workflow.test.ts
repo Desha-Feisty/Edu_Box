@@ -399,14 +399,13 @@ describe("Full App Integration Tests", () => {
             expect(joinRes.status).toBe(200);
 
             // 5. Teacher creates quiz
-            const now = new Date();
             const quizRes = await request(app)
                 .post(`/api/quizzes/${courseId}/quizzes`)
                 .set("Authorization", `Bearer ${teacherToken}`)
                 .send({
                     title: "Full Integration Quiz",
-                    openAt: new Date(now.getTime() + 100).toISOString(),
-                    closeAt: new Date(now.getTime() + 3600000).toISOString(),
+                    openAt: new Date(Date.now() + 50).toISOString(),
+                    closeAt: new Date(Date.now() + 3600000).toISOString(),
                     durationMinutes: 30,
                 });
             expect(quizRes.status).toBe(201);
@@ -432,7 +431,7 @@ describe("Full App Integration Tests", () => {
                 .set("Authorization", `Bearer ${teacherToken}`);
             expect(pubRes.status).toBe(200);
 
-            // 8. Student starts attempt — openAt was set 100ms in future so it's open by now
+            // 8. Student starts attempt — openAt was set ~50ms in future, elapsed by now
             const attemptRes = await request(app)
                 .post(`/api/attempts/${quizId}/attempts/start`)
                 .set("Authorization", `Bearer ${studentToken}`);
