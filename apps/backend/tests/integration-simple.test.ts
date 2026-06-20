@@ -34,7 +34,7 @@ describe("Integration Tests", () => {
         const uniqueEmail = `teacher${Date.now()}@test.com`;
         const res = await request(app)
             .post("/api/auth/register")
-            .send({ name: "Teacher1", email: uniqueEmail, password: "pass123", role: "teacher" });
+            .send({ name: "Teacher1", email: uniqueEmail, password: "pass1234", role: "teacher" });
         expect(res.status).toBe(201);
     }, 30000);
 
@@ -42,7 +42,7 @@ describe("Integration Tests", () => {
         const uniqueEmail = `student${Date.now()}@test.com`;
         const res = await request(app)
             .post("/api/auth/register")
-            .send({ name: "Student1", email: uniqueEmail, password: "pass123", role: "student" });
+            .send({ name: "Student1", email: uniqueEmail, password: "pass1234", role: "student" });
         expect(res.status).toBe(201);
     }, 30000);
 });
