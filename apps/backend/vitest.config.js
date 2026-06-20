@@ -5,6 +5,8 @@ export default defineConfig({
         environment: 'node',
         include: ['tests/**/*.test.ts'],
         exclude: ['tests/tests/**', 'node_modules', 'dist'],
+        hookTimeout: 60_000,
+        testTimeout: 60_000,
     },
 });
 //# sourceMappingURL=vitest.config.js.map

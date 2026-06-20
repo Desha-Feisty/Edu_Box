@@ -177,7 +177,7 @@ describe("Full App Integration Tests", () => {
                 .set("Authorization", `Bearer ${teacherToken}`)
                 .send({
                     title: "Test Quiz",
-                    openAt: new Date(now.getTime() - 60000).toISOString(),
+                    openAt: new Date(now.getTime() + 60000).toISOString(),
                     closeAt: new Date(now.getTime() + 3600000).toISOString(),
                     durationMinutes: 30,
                 });
@@ -364,7 +364,7 @@ describe("Full App Integration Tests", () => {
                 .send({
                     name: "Integration Teacher",
                     email: `iteacher${Date.now()}@test.com`,
-                    password: "pass123",
+                    password: "pass1234",
                     role: "teacher"
                 });
             teacherToken = teacherRes.body.data?.token || teacherRes.body.token;
@@ -376,7 +376,7 @@ describe("Full App Integration Tests", () => {
                 .send({
                     name: "Integration Student",
                     email: `istudent${Date.now()}@test.com`,
-                    password: "pass123",
+                    password: "pass1234",
                     role: "student"
                 });
             studentToken = studentRes.body.data?.token || studentRes.body.token;
@@ -405,7 +405,7 @@ describe("Full App Integration Tests", () => {
                 .set("Authorization", `Bearer ${teacherToken}`)
                 .send({
                     title: "Full Integration Quiz",
-                    openAt: new Date(now.getTime() - 60000).toISOString(),
+                    openAt: new Date(now.getTime() + 100).toISOString(),
                     closeAt: new Date(now.getTime() + 3600000).toISOString(),
                     durationMinutes: 30,
                 });
@@ -432,7 +432,7 @@ describe("Full App Integration Tests", () => {
                 .set("Authorization", `Bearer ${teacherToken}`);
             expect(pubRes.status).toBe(200);
 
-            // 8. Student starts attempt
+            // 8. Student starts attempt — openAt was set 100ms in future so it's open by now
             const attemptRes = await request(app)
                 .post(`/api/attempts/${quizId}/attempts/start`)
                 .set("Authorization", `Bearer ${studentToken}`);
