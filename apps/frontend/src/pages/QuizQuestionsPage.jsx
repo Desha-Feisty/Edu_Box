@@ -28,6 +28,7 @@ function QuizQuestionsPage() {
         addQuestion,
         updateQuestion,
         deleteQuestion,
+        regenerateRubric,
         generateAiQuestions,
         generateFromFile,
         publishQuiz,
@@ -53,6 +54,8 @@ function QuizQuestionsPage() {
     const [aiFile, setAiFile] = useState(null);
     const [deleteConfirmId, setDeleteConfirmId] = useState(null);
     const [publishSuccess, setPublishSuccess] = useState(false);
+    const [inlinePointsEditId, setInlinePointsEditId] = useState(null);
+    const [inlinePointsValue, setInlinePointsValue] = useState(1);
 
     const [formData, setFormData] = useState({
         prompt: "",
@@ -298,6 +301,34 @@ function QuizQuestionsPage() {
         }
     };
 
+    const handleInlinePointsSave = async (questionId) => {
+        const value = inlinePointsValue;
+        if (value < 1) {
+            toast.error("Points must be at least 1");
+            setInlinePointsEditId(null);
+            return;
+        }
+        try {
+            await updateQuestion(questionId, { points: value });
+            toast.success("Points updated");
+            setInlinePointsEditId(null);
+
+            // Regenerate rubric for written questions to match new point value
+            const question = questions.find((q) => q._id === questionId);
+            if (question?.questionType === "written" && question?.rubric) {
+                try {
+                    await regenerateRubric(questionId);
+                } catch {
+                    // Non-critical — points already saved
+                }
+            }
+
+            fetchQuestions();
+        } catch {
+            toast.error("Failed to update points");
+        }
+    };
+
     if (isLoading)
         return (
             <div className="min-h-screen flex items-center justify-center dark:bg-base-300">
@@ -480,8 +511,8 @@ function QuizQuestionsPage() {
                                                     </button>
                                                 </div>
                                             ) : (
-                                                <label className="cursor-pointer block">
-                                                    <div className="text-4xl mb-3">📂</div>
+                                        <label className="cursor-pointer block p-4">
+                                            <div className="text-4xl mb-3">📂</div>
                                                     <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">
                                                         Click to upload or drag & drop
                                                     </p>
@@ -889,9 +920,39 @@ function QuizQuestionsPage() {
                                                 {idx + 1}
                                             </div>
                                             <div>
-                                                <div className="badge badge-ghost font-medium text-slate-600 dark:text-slate-400 mb-1 border-slate-200 dark:border-slate-700">
-                                                    {q.points} {q.points === 1 ? "Point" : "Points"}
-                                                </div>
+                                                {q._id === inlinePointsEditId ? (
+                                                    <div className="flex items-center gap-1.5 mb-1">
+                                                        <input
+                                                            type="number"
+                                                            min="1"
+                                                            max="100"
+                                                            value={inlinePointsValue}
+                                                            onChange={(e) => setInlinePointsValue(Math.max(1, parseInt(e.target.value) || 1))}
+                                                            onBlur={() => handleInlinePointsSave(q._id)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === "Enter") {
+                                                                    (e.target as HTMLInputElement).blur();
+                                                                } else if (e.key === "Escape") {
+                                                                    setInlinePointsEditId(null);
+                                                                }
+                                                            }}
+                                                            className="input input-xs bg-white/60 dark:bg-base-300/60 border-slate-300 dark:border-slate-600 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-300 w-16 text-center font-mono"
+                                                            autoFocus
+                                                        />
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">pts</span>
+                                                    </div>
+                                                ) : (
+                                                    <div
+                                                        className="badge badge-ghost font-medium text-slate-600 dark:text-slate-400 mb-1 border-slate-200 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                                        onClick={() => {
+                                                            setInlinePointsEditId(q._id);
+                                                            setInlinePointsValue(q.points);
+                                                        }}
+                                                        title="Click to edit points"
+                                                    >
+                                                        {q.points} {q.points === 1 ? "Point" : "Points"}
+                                                    </div>
+                                                )}
                                                 <div className="text-[10px] uppercase tracking-wider font-bold text-slate-400">
                                                     {q.questionType === "written" ? "Written Question" : "Multiple Choice"}
                                                 </div>

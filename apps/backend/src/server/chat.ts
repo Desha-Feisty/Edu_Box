@@ -249,6 +249,8 @@ export function initializeChat(io: SocketIOServer) {
                     ...messageObj,
                     sender: messageObj.sender,
                     recipient: messageObj.recipient,
+                    courseId,
+                    peerId: user._id.toString(),
                     senderId: (messageObj.sender as any)?._id?.toString() || messageObj.sender?.toString(),
                     recipientId: (messageObj.recipient as any)?._id?.toString() || messageObj.recipient?.toString(),
                 };

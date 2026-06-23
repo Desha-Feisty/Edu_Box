@@ -21,7 +21,7 @@ const Input = forwardRef(function Input(
     return (
         <div className={`form-control ${containerClassName}`}>
             {label && (
-                <label className="label pb-1.5" htmlFor={props.id}>
+                <label className="label pb-2" htmlFor={props.id}>
                     <span className="label-text font-medium text-slate-700 dark:text-slate-300 text-sm">
                         {label}
                     </span>
@@ -94,7 +94,7 @@ const Textarea = forwardRef(function Textarea(
     return (
         <div className={`form-control ${containerClassName}`}>
             {label && (
-                <label className="label pb-1.5">
+                <label className="label pb-2">
                     <span className="label-text font-medium text-slate-700 dark:text-slate-300 text-sm">
                         {label}
                     </span>
@@ -130,7 +130,7 @@ const Select = forwardRef(function Select(
     return (
         <div className={`form-control ${containerClassName}`}>
             {label && (
-                <label className="label pb-1.5">
+                <label className="label pb-2">
                     <span className="label-text font-medium text-slate-700 dark:text-slate-300 text-sm">
                         {label}
                     </span>

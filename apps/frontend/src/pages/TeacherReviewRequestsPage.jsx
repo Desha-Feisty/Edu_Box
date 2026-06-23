@@ -191,7 +191,7 @@ export default function TeacherReviewRequestsPage() {
         {(isUngraded || isContestTab) && (
           <div className="ml-6 flex flex-wrap items-end gap-2">
             <div className="form-control w-20">
-              <label className="label py-0 pb-1">
+              <label className="label pb-1">
                 <span className="label-text text-xs">Score</span>
               </label>
               <input
@@ -205,7 +205,7 @@ export default function TeacherReviewRequestsPage() {
               />
             </div>
             <div className="form-control flex-1 min-w-[200px]">
-              <label className="label py-0 pb-1">
+              <label className="label pb-1">
                 <span className="label-text text-xs">Message to student (optional)</span>
               </label>
               <textarea

@@ -60,7 +60,7 @@ export default function TeacherDashboard() {
     const fetchEvents = async () => {
       const results = await Promise.allSettled(
         allCourses.map((c) =>
-          api.get(`/calendar/${c._id}/events`).then((r) => r.data.calendarEvents || [])
+          api.get(`/courses/${c._id}/events`).then((r) => r.data.calendarEvents || [])
         )
       );
       setCustomCalendarEvents(

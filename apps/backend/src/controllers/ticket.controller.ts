@@ -32,16 +32,7 @@ const createTicket = async (req: AuthRequest, res: Response) => {
             const admins = await User.find({ role: "admin" }).select("_id");
             const io = getIO();
             for (const admin of admins) {
-                if (io) {
-                    io.to(`user:${admin._id}`).emit("new-ticket", {
-                        ticketId: ticket._id,
-                        subject: ticket.subject,
-                        userName,
-                        message: ticket.message,
-                    });
-                }
-                
-                // Also save notification to database
+                // Save notification to database FIRST (before socket emit)
                 await Notification.create({
                     user: admin._id as any,
                     title: "New Support Ticket",
@@ -50,6 +41,16 @@ const createTicket = async (req: AuthRequest, res: Response) => {
                     link: "/admin/tickets",
                     read: false,
                 });
+                
+                // Then emit socket event (frontend fetches notifications on receiving it)
+                if (io) {
+                    io.to(`user:${admin._id}`).emit("new-ticket", {
+                        ticketId: ticket._id,
+                        subject: ticket.subject,
+                        userName,
+                        message: ticket.message,
+                    });
+                }
             }
         } catch (notifyErr) {
             console.error("Failed to notify admins:", notifyErr);
@@ -120,21 +121,11 @@ const respondToTicket = async (req: AuthRequest, res: Response) => {
             { new: true }
         );
 
-        // Notify the user about the response via socket
+        // Notify the user (notifyUser calls saveNotification which persists to DB)
         notifyUser(userId, "ticket-response", {
             ticketId,
             subject,
             adminReply: adminReply.trim(),
-        });
-
-        // Also save notification to database for user
-        await Notification.create({
-            user: ticket.user as any,
-            title: "Ticket Response",
-            message: `Admin responded to: "${subject}"`,
-            type: "ticket",
-            link: "/settings",
-            read: false,
         });
 
         return res.status(200).json({ message: "Response sent successfully" });

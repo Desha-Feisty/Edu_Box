@@ -24,7 +24,7 @@ export default function FormGroup({
     return (
         <div className={`form-control ${className}`}>
             {label && (
-                <label className="label pb-1.5" htmlFor={id}>
+                <label className="label pb-2" htmlFor={id}>
                     <span className="label-text font-medium text-slate-700 dark:text-slate-300 text-sm">
                         {label}
                         {required && (

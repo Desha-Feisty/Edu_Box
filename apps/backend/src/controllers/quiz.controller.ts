@@ -1090,6 +1090,67 @@ const generateQuestionsFromFile = async (req: AuthRequest, res: Response) => {
     }
 };
 
+const regenerateRubric = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ errMsg: "question id is required" });
+        }
+
+        if (!process.env.GEMINI_API_KEY) {
+            return res.status(500).json({
+                errMsg: "AI features are not configured on the server",
+            });
+        }
+
+        const question = await Question.findById(id);
+        if (!question) {
+            return res.status(404).json({ errMsg: "question not found" });
+        }
+        if (question.questionType !== "written") {
+            return res
+                .status(400)
+                .json({ errMsg: "rubric regeneration is only for written questions" });
+        }
+        if (!question.rubric) {
+            return res
+                .status(400)
+                .json({ errMsg: "question has no existing rubric to regenerate" });
+        }
+
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+        const rubricPrompt = `You are an expert educator. Given the following written question:
+
+"${question.prompt}"
+
+This question is worth ${question.points} points.
+The original rubric was:
+"${question.rubric}"
+
+Generate an updated grading rubric that is appropriate for a maximum of ${question.points} points.
+The rubric should:
+- Be scaled appropriately for ${question.points} maximum points
+- Include clear, specific criteria for awarding points at different levels
+- Be detailed enough for consistent AI grading
+- Help students understand what is expected
+
+Return ONLY the rubric text as a plain string. No markdown, no JSON, no extra formatting.`;
+
+        const result = await model.generateContent(rubricPrompt);
+        const rubric = result.response.text().trim();
+
+        question.rubric = rubric;
+        await question.save();
+
+        return res.status(200).json({ question });
+    } catch (error) {
+        console.error("Regenerate rubric error:", error instanceof Error ? error.message : error);
+        return res.status(500).json({ errMsg: "failed to regenerate rubric" });
+    }
+};
+
 export {
     createQuizFromBody,
     addQuestion,
@@ -1104,4 +1165,5 @@ export {
     deleteQuiz,
     generateQuestionsWithAI,
     generateQuestionsFromFile,
+    regenerateRubric,
 };

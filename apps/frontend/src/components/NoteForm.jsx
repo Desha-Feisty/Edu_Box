@@ -51,7 +51,7 @@ export default function NoteForm({ courseId, onNoteCreated }) {
                 <form onSubmit={handleSubmit} className="space-y-5">
                     {/* Title Input */}
                     <div className="form-control">
-                        <label className="label py-1">
+                        <label className="label pb-1.5">
                             <span className="label-text font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
                                 Title
                             </span>
@@ -75,7 +75,7 @@ export default function NoteForm({ courseId, onNoteCreated }) {
 
                     {/* Content Input */}
                     <div className="form-control">
-                        <label className="label py-1">
+                        <label className="label pb-1.5">
                             <span className="label-text font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wider">
                                 Content
                             </span>

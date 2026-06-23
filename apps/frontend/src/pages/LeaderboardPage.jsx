@@ -42,12 +42,15 @@ function LeaderboardPage() {
                 {/* Course Selector */}
                 {role !== "admin" && allCourses.length > 0 && (
                     <div className="bg-white dark:bg-base-200 rounded-2xl border border-slate-200/60 dark:border-white/[0.06] p-6 mb-8">
-                        <div className="flex flex-col md:flex-row md:items-center gap-4">
-                            <span className="text-sm font-medium text-slate-500">
-                                Select Course:
-                            </span>
-                            <select
-                                className="select select-bordered select-sm bg-white dark:bg-base-300 rounded-xl focus:ring-2 focus:ring-yellow-500/50 min-w-[250px]"
+                        <div className="flex flex-col md:flex-row md:items-end gap-4">
+                            <div className="form-control">
+                                <label className="label pb-1.5">
+                                    <span className="label-text text-sm font-medium text-slate-500">
+                                        Select Course
+                                    </span>
+                                </label>
+                                <select
+                                    className="select select-bordered select-sm bg-white dark:bg-base-300 rounded-xl focus:ring-2 focus:ring-yellow-500/50 min-w-[250px]"
                                 value={selectedCourseId || (allCourses.length > 0 ? allCourses[0]._id : "")}
                                 onChange={(e) => setSelectedCourseId(e.target.value)}
                             >

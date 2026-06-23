@@ -193,6 +193,12 @@ app.delete(
     requireRole("teacher"),
     quizController.deleteQuestion,
 );
+app.post(
+    "/api/questions/:id/regenerate-rubric",
+    authMiddleware,
+    requireRole("teacher"),
+    quizController.regenerateRubric,
+);
 
 // Health check endpoint (no auth required)
 app.get("/api/health", (req: Request, res: Response) => {

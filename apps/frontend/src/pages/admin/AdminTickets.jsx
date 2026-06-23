@@ -57,7 +57,17 @@ function AdminTickets() {
             toast.success("Response sent successfully");
             setRespondingTo(null);
             setAdminReply("");
-            fetchTickets();
+            // Update selectedTicket optimistically so the reply shows immediately
+            const replyText = adminReply.trim();
+            setSelectedTicket((prev) =>
+                prev?._id === ticketId ? { ...prev, adminReply: replyText } : prev
+            );
+            setTickets((prev) =>
+                prev.map((t) =>
+                    t._id === ticketId ? { ...t, adminReply: replyText } : t
+                )
+            );
+            fetchTickets(); // background refresh
         } catch (err) {
             toast.error(err.response?.data?.errMsg || "Failed to send response");
         }

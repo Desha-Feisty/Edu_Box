@@ -190,6 +190,23 @@ const useQuizStore = create((set) => ({
         }
     },
 
+    regenerateRubric: async (questionId) => {
+        try {
+            const token = useAuthStore.getState().token;
+            const response = await axios.post(
+                `/api/questions/${questionId}/regenerate-rubric`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                },
+            );
+            return response.data.question;
+        } catch (error) {
+            set({ errMsg: error.response?.data?.errMsg || error.message });
+            throw error;
+        }
+    },
+
     fetchAvailableQuizzes: async () => {
         try {
             const token = useAuthStore.getState().token;

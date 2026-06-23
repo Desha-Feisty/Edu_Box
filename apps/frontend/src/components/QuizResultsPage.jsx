@@ -27,6 +27,8 @@ function QuizResultsPage() {
     const [contestForm, setContestForm] = useState(null); // { responseIndex, reason }
     const [contestSubmitting, setContestSubmitting] = useState(false);
     const scoreRef = useRef(null);
+    const [gradingInProgress, setGradingInProgress] = useState(false);
+    const pollingRef = useRef(null);
 
     useEffect(() => {
         const fetchAttempt = async () => {
@@ -60,6 +62,50 @@ function QuizResultsPage() {
 
         fetchAttempt();
     }, [attemptId, currentAttempt, token]);
+
+    // Polling effect — re-fetches attempt while written questions await AI grading
+    useEffect(() => {
+        if (!attempt || attempt.status !== "submitted") return;
+
+        const hasWrittenAwaitingGrade = attempt.responses?.some(
+            (r) => r.questionType === "written" && r.aiScore === undefined
+        );
+        if (!hasWrittenAwaitingGrade) return;
+
+        setGradingInProgress(true);
+
+        pollingRef.current = setInterval(async () => {
+            try {
+                const response = await axios.get(`/api/attempts/${attemptId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (response.data.attempt.status === "graded") {
+                    clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                    setGradingInProgress(false);
+                    setAttempt({
+                        ...response.data.attempt,
+                        quiz: response.data.quiz,
+                        course: response.data.course,
+                        responses: response.data.responses,
+                    });
+                }
+            } catch {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+                setGradingInProgress(false);
+            }
+        }, 2000);
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            setGradingInProgress(false);
+        };
+    }, [attempt, attemptId, token]);
 
     const handleContestSubmit = async (responseIndex) => {
         const reason = contestForm?.reason?.trim();
@@ -111,7 +157,10 @@ function QuizResultsPage() {
 
     const correctAnswers =
         attempt?.responses?.filter((r) => r.pointsAwarded > 0).length || 0;
-    const incorrectAnswers = (attempt?.responses?.length || 0) - correctAnswers;
+    const pendingWritten = attempt?.responses?.filter(
+        (r) => r.questionType === "written" && r.aiScore === undefined
+    ).length || 0;
+    const incorrectAnswers = (attempt?.responses?.length || 0) - correctAnswers - pendingWritten;
 
     // Determine performance level
     const getPerformanceData = (percentage) => {
@@ -311,6 +360,21 @@ function QuizResultsPage() {
                                 </p>
                             </div>
 
+                            {/* Grading Indicator — shown while AI evaluates written answers */}
+                            {gradingInProgress && (
+                                <div className="flex items-center gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-6 max-w-lg mx-auto">
+                                    <span className="loading loading-spinner loading-sm text-blue-600"></span>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-blue-800 dark:text-blue-200">
+                                            Grading your written answers...
+                                        </p>
+                                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                                            Your score will update automatically when grading is complete
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Stats Grid */}
                             <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto">
                                 <div className="glass-card bg-white/60 dark:bg-base-300/60 rounded-2xl p-6 border border-white/40 dark:border-slate-700 hover:-translate-y-1 transition-transform">
@@ -324,14 +388,23 @@ function QuizResultsPage() {
                                 </div>
                                 <div className="glass-card bg-white/60 dark:bg-base-300/60 rounded-2xl p-6 border border-white/40 dark:border-slate-700 hover:-translate-y-1 transition-transform">
                                     <div className="flex items-center justify-center gap-2 mb-2">
-                                        <XCircle className="w-6 h-6 text-red-500" />
+                                        {gradingInProgress && pendingWritten > 0 ? (
+                                            <span className="loading loading-spinner loading-sm text-amber-500"></span>
+                                        ) : (
+                                            <XCircle className="w-6 h-6 text-red-500" />
+                                        )}
                                     </div>
                                     <p className="text-4xl font-black text-red-600 dark:text-red-400">
                                         {incorrectAnswers}
                                     </p>
                                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-1">
-                                        Incorrect
+                                        {gradingInProgress && pendingWritten > 0 ? "Incorrect" : "Incorrect"}
                                     </p>
+                                    {gradingInProgress && pendingWritten > 0 && (
+                                        <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                            +{pendingWritten} pending
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="glass-card bg-white/60 dark:bg-base-300/60 rounded-2xl p-6 border border-white/40 dark:border-slate-700 hover:-translate-y-1 transition-transform">
                                     <div className="flex items-center justify-center gap-2 mb-2">
@@ -392,16 +465,19 @@ function QuizResultsPage() {
                             </h2>
                             <div className="space-y-4">
                                 {attempt.responses.map((response, index) => {
-                                    const isCorrect = response.pointsAwarded > 0;
                                     const isWritten = response.questionType === "written";
+                                    const isPending = isWritten && response.aiScore === undefined;
+                                    const isCorrect = !isPending && response.pointsAwarded > 0;
                                     
                                     return (
                                         <div
                                             key={index}
                                             className={`p-6 rounded-2xl border-l-4 transition-all hover:-translate-y-0.5 ${
-                                                isCorrect
-                                                    ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-l-emerald-500 border-t border-r border-b border-slate-200 dark:border-slate-700"
-                                                    : "bg-red-50/50 dark:bg-red-900/10 border-l-red-500 border-t border-r border-b border-slate-200 dark:border-slate-700"
+                                                isPending
+                                                    ? "bg-amber-50/50 dark:bg-amber-900/10 border-l-amber-400 border-t border-r border-b border-slate-200 dark:border-slate-700"
+                                                    : isCorrect
+                                                        ? "bg-emerald-50/50 dark:bg-emerald-900/10 border-l-emerald-500 border-t border-r border-b border-slate-200 dark:border-slate-700"
+                                                        : "bg-red-50/50 dark:bg-red-900/10 border-l-red-500 border-t border-r border-b border-slate-200 dark:border-slate-700"
                                             }`}
                                         >
                                             <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
@@ -411,7 +487,9 @@ function QuizResultsPage() {
                                                             Question {index + 1}
                                                             {isWritten && <span className="ml-2 badge badge-info badge-sm">Written</span>}
                                                         </h3>
-                                                        {isCorrect ? (
+                                                        {isPending ? (
+                                                            <span className="loading loading-spinner loading-xs text-amber-500"></span>
+                                                        ) : isCorrect ? (
                                                             <CheckCircle className="w-5 h-5 text-emerald-500" />
                                                         ) : (
                                                             <XCircle className="w-5 h-5 text-red-500" />
@@ -443,22 +521,32 @@ function QuizResultsPage() {
                                                                 </div>
                                                             )}
 
+                                                            {/* Pending grading indicator */}
+                                                            {isPending && (
+                                                                <div className="mt-3 flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
+                                                                    <span className="loading loading-spinner loading-xs text-amber-500" />
+                                                                    <span className="text-amber-700 dark:text-amber-300 font-medium">
+                                                                        AI grading in progress...
+                                                                    </span>
+                                                                </div>
+                                                            )}
+
                                                             {/* Contest / Request Review */}
-                                                            {response.contestStatus === "pending" ? (
+                                                            {!isPending && response.contestStatus === "pending" ? (
                                                                 <div className="mt-3 flex items-center gap-2 text-sm bg-amber-50 dark:bg-amber-900/20 p-3 rounded-xl border border-amber-200 dark:border-amber-800">
                                                                     <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                                                                     <span className="text-amber-700 dark:text-amber-300 font-medium">
                                                                         Review requested — waiting for teacher
                                                                     </span>
                                                                 </div>
-                                                            ) : response.contestStatus === "resolved" ? (
+                                                            ) : !isPending && response.contestStatus === "resolved" ? (
                                                                 <div className="mt-3 flex items-center gap-2 text-sm bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-xl border border-emerald-200 dark:border-emerald-800">
                                                                     <span className="w-2 h-2 rounded-full bg-emerald-500" />
                                                                     <span className="text-emerald-700 dark:text-emerald-300 font-medium">
                                                                         Review completed
                                                                     </span>
                                                                 </div>
-                                                            ) : contestForm?.responseIndex === index ? (
+                                                            ) : !isPending && contestForm?.responseIndex === index ? (
                                                                 <div className="mt-3 bg-white dark:bg-base-300 p-4 rounded-xl border border-brand-200 dark:border-brand-800 space-y-3">
                                                                     <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                                                                         Why do you think this should be reviewed?
@@ -493,7 +581,7 @@ function QuizResultsPage() {
                                                                         </button>
                                                                     </div>
                                                                 </div>
-                                                            ) : (
+                                                            ) : !isPending ? (
                                                                 <button
                                                                     className="mt-3 btn btn-outline btn-sm gap-2 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20"
                                                                     onClick={() =>
@@ -502,7 +590,7 @@ function QuizResultsPage() {
                                                                 >
                                                                     Request Review
                                                                 </button>
-                                                            )}
+                                                            ) : null}
                                                         </div>
                                                     ) : (
                                                         <div className="space-y-2 bg-white/50 dark:bg-base-300/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50">
@@ -524,24 +612,37 @@ function QuizResultsPage() {
                                                     )}
                                                 </div>
                                                 <div className="text-left sm:text-right shrink-0 bg-white dark:bg-base-300 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 shadow-sm self-start w-full sm:w-auto">
-                                                    <div
-                                                        className={`text-3xl font-black mb-1 ${
-                                                            isCorrect
-                                                                ? "text-emerald-600 dark:text-emerald-400"
-                                                                : "text-red-600 dark:text-red-400"
-                                                        }`}
-                                                    >
-                                                        {response.pointsAwarded} <span className="text-lg text-slate-400 font-medium">/ {response.points || 1}</span>
-                                                    </div>
-                                                    <div
-                                                        className={`text-xs font-bold uppercase tracking-wider ${
-                                                            isCorrect
-                                                                ? "text-emerald-600 dark:text-emerald-500"
-                                                                : "text-red-600 dark:text-red-500"
-                                                        }`}
-                                                    >
-                                                        {isCorrect ? "✓ Correct" : "✗ Incorrect"}
-                                                    </div>
+                                                    {isPending ? (
+                                                        <>
+                                                            <div className="text-3xl font-black text-amber-500 dark:text-amber-400 mb-1">
+                                                                -- <span className="text-lg text-slate-400 font-medium">/ {response.points || 1}</span>
+                                                            </div>
+                                                            <div className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-500">
+                                                                Pending
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <div
+                                                                className={`text-3xl font-black mb-1 ${
+                                                                    isCorrect
+                                                                        ? "text-emerald-600 dark:text-emerald-400"
+                                                                        : "text-red-600 dark:text-red-400"
+                                                                }`}
+                                                            >
+                                                                {response.pointsAwarded} <span className="text-lg text-slate-400 font-medium">/ {response.points || 1}</span>
+                                                            </div>
+                                                            <div
+                                                                className={`text-xs font-bold uppercase tracking-wider ${
+                                                                    isCorrect
+                                                                        ? "text-emerald-600 dark:text-emerald-500"
+                                                                        : "text-red-600 dark:text-red-500"
+                                                                }`}
+                                                            >
+                                                                {isCorrect ? "✓ Correct" : "✗ Incorrect"}
+                                                            </div>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

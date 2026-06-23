@@ -237,7 +237,9 @@ function AdminUsers() {
                         </div>
                         <form onSubmit={handleAddUser} className="space-y-4">
                             <div className="form-control">
-                                <label className="label-text font-bold mb-1 block">Full Name</label>
+                                <label className="label pb-1.5">
+                                    <span className="label-text font-bold">Full Name</span>
+                                </label>
                                 <input 
                                     type="text" 
                                     className="input input-bordered w-full rounded-xl"
@@ -247,7 +249,9 @@ function AdminUsers() {
                                 />
                             </div>
                             <div className="form-control">
-                                <label className="label-text font-bold mb-1 block">Email Address</label>
+                                <label className="label pb-1.5">
+                                    <span className="label-text font-bold">Email Address</span>
+                                </label>
                                 <input 
                                     type="email" 
                                     className="input input-bordered w-full rounded-xl"
@@ -257,7 +261,9 @@ function AdminUsers() {
                                 />
                             </div>
                             <div className="form-control">
-                                <label className="label-text font-bold mb-1 block">Initial Password</label>
+                                <label className="label pb-1.5">
+                                    <span className="label-text font-bold">Initial Password</span>
+                                </label>
                                 <input 
                                     type="password" 
                                     className="input input-bordered w-full rounded-xl"

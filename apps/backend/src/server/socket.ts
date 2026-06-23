@@ -67,7 +67,9 @@ const saveNotification = async (userId: string, event: string, data: any) => {
             title = `Message from ${senderName}`;
             message = data.text;
             // Store chat params in link for frontend to open chat window directly
-            link = `__chat__?courseId=${data.courseId}&peerId=${data.peerId}&peerName=${encodeURIComponent(senderName)}`;
+            const chatCourseId = data.courseId || data.course?.toString() || "";
+            const chatPeerId = data.peerId || data.senderId || "";
+            link = `__chat__?courseId=${chatCourseId}&peerId=${chatPeerId}&peerName=${encodeURIComponent(senderName)}`;
         } else if (event === "quiz-graded") {
             type = "quiz-graded";
             title = "Grades Released";

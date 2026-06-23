@@ -11,6 +11,7 @@ import {
     FileText,
     MessageSquare,
     AlertCircle,
+    HelpCircle,
     Trash2,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -23,6 +24,7 @@ const iconColors = {
     "quiz-missed": { bg: "bg-red-100 dark:bg-red-500/15", color: "text-red-500" },
     note: { bg: "bg-amber-100 dark:bg-amber-500/15", color: "text-amber-500" },
     chat: { bg: "bg-purple-100 dark:bg-purple-500/15", color: "text-purple-500" },
+    ticket: { bg: "bg-cyan-100 dark:bg-cyan-500/15", color: "text-cyan-500" },
     system: { bg: "bg-slate-100 dark:bg-slate-500/15", color: "text-slate-500" },
 };
 
@@ -51,6 +53,7 @@ function NotificationCenter({ isOpen, onClose }) {
             "quiz-missed": AlertCircle,
             note: FileText,
             chat: MessageSquare,
+            ticket: HelpCircle,
             system: Bell,
         };
         const Icon = icons[type] || Bell;
@@ -98,7 +101,7 @@ function NotificationCenter({ isOpen, onClose }) {
                 const peerId = params.get("peerId");
                 const peerName = params.get("peerName");
                 const courseId = params.get("courseId");
-                if (peerId && courseId) {
+                if (peerId && peerId !== "undefined" && courseId && courseId !== "undefined") {
                     useChatStore.getState().openChat(peerId, peerName || "User", courseId);
                     onClose();
                 }
