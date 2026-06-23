@@ -931,7 +931,7 @@ function QuizQuestionsPage() {
                                                             onBlur={() => handleInlinePointsSave(q._id)}
                                                             onKeyDown={(e) => {
                                                                 if (e.key === "Enter") {
-                                                                    (e.target as HTMLInputElement).blur();
+                                                                    e.target.blur();
                                                                 } else if (e.key === "Escape") {
                                                                     setInlinePointsEditId(null);
                                                                 }

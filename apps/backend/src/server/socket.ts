@@ -123,19 +123,19 @@ const saveNotification = async (userId: string, event: string, data: any) => {
 };
 
 // Helper for notifying a specific user
-export const notifyUser = (userId: string, event: string, data: any) => {
+export const notifyUser = async (userId: string, event: string, data: any) => {
     if (io) {
+        await saveNotification(userId, event, data);
         io.to(`user:${userId}`).emit(event, data);
-        saveNotification(userId, event, data);
     }
 };
 
 // Helper for notifying multiple users (e.g. course enrollment)
-export const notifyUsers = (userIds: string[], event: string, data: any) => {
+export const notifyUsers = async (userIds: string[], event: string, data: any) => {
     if (io) {
-        userIds.forEach((id) => {
+        for (const id of userIds) {
+            await saveNotification(id, event, data);
             io!.to(`user:${id}`).emit(event, data);
-            saveNotification(id, event, data);
-        });
+        }
     }
 };

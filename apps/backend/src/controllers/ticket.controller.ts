@@ -122,7 +122,7 @@ const respondToTicket = async (req: AuthRequest, res: Response) => {
         );
 
         // Notify the user (notifyUser calls saveNotification which persists to DB)
-        notifyUser(userId, "ticket-response", {
+        await notifyUser(userId, "ticket-response", {
             ticketId,
             subject,
             adminReply: adminReply.trim(),

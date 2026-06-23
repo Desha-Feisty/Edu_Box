@@ -1103,10 +1103,19 @@ const regenerateRubric = async (req: AuthRequest, res: Response) => {
             });
         }
 
-        const question = await Question.findById(id);
+        const question = await Question.findById(id).populate({
+            path: "quiz",
+            populate: { path: "course" },
+        });
         if (!question) {
             return res.status(404).json({ errMsg: "question not found" });
         }
+
+        const quiz = question.quiz as any;
+        if (quiz.course?.teacher?.toString() !== req.user?._id) {
+            return res.status(403).json({ errMsg: "forbidden" });
+        }
+
         if (question.questionType !== "written") {
             return res
                 .status(400)
@@ -1140,6 +1149,13 @@ Return ONLY the rubric text as a plain string. No markdown, no JSON, no extra fo
 
         const result = await model.generateContent(rubricPrompt);
         const rubric = result.response.text().trim();
+
+        if (!rubric) {
+            return res.status(500).json({ errMsg: "AI returned an empty rubric" });
+        }
+        if (rubric.length > 10000) {
+            return res.status(500).json({ errMsg: "AI returned an excessively long rubric" });
+        }
 
         question.rubric = rubric;
         await question.save();

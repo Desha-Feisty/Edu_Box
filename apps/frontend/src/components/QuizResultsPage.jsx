@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import useQuizStore from "../stores/Quizstore";
 import useAuthStore from "../stores/Authstore";
 import axios from "axios";
+import toast from "react-hot-toast";
 import {
     Home,
     CheckCircle,
@@ -80,7 +81,10 @@ function QuizResultsPage() {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (response.data.attempt.status === "graded") {
+                const allAiGraded = !response.data.attempt.responses?.some(
+                    (r) => r.questionType === "written" && r.aiScore === undefined
+                );
+                if (response.data.attempt.status === "graded" || allAiGraded) {
                     clearInterval(pollingRef.current);
                     pollingRef.current = null;
                     setGradingInProgress(false);
@@ -95,6 +99,7 @@ function QuizResultsPage() {
                 clearInterval(pollingRef.current);
                 pollingRef.current = null;
                 setGradingInProgress(false);
+                toast.error("Failed to check grading status. Updates may be delayed.");
             }
         }, 2000);
 
@@ -398,7 +403,7 @@ function QuizResultsPage() {
                                         {incorrectAnswers}
                                     </p>
                                     <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-1">
-                                        {gradingInProgress && pendingWritten > 0 ? "Incorrect" : "Incorrect"}
+                                        Incorrect
                                     </p>
                                     {gradingInProgress && pendingWritten > 0 && (
                                         <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
