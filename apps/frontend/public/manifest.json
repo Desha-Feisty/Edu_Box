@@ -1,6 +1,6 @@
 {
-    "name": "ClassBox LMS",
-    "short_name": "ClassBox",
+    "name": "EduBox",
+    "short_name": "EduBox",
     "description": "AI-powered Learning Management System",
     "start_url": "/",
     "display": "standalone",
